@@ -240,17 +240,11 @@ async function insertDefaultData() {
 
       // Insert default users with hashed passwords
       await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Admin Park M', 'admin', 'admin@park-m.pl', passwordHash]);
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Jan Kowalski', 'brygadzista', 'jan.kowalski@park-m.pl', passwordHash]);
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Anna Nowak', 'pracownik', 'anna.nowak@park-m.pl', passwordHash]);
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Piotr Wiśniewski', 'pracownik', 'piotr.wisniewski@park-m.pl', passwordHash]);
+      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Alan', 'brygadzista', 'alan@park-m.pl', passwordHash]);
+      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Tomasz', 'pracownik', 'tomasz@park-m.pl', passwordHash]);
+      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Grzegorz', 'pracownik', 'grzegorz@park-m.pl', passwordHash]);
 
-      // Insert default species
-      await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Dąb szypułkowy', 'Quercus robur']);
-      await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Klon zwyczajny', 'Acer platanoides']);
-      await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Lipa drobnolistna', 'Tilia cordata']);
-      await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Brzoza brodawkowata', 'Betula pendula']);
-      await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Sosna zwyczajna', 'Pinus sylvestris']);
-      await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Świerk pospolity', 'Picea abies']);
+      // Insert default species (tylko wybrane gatunki)
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Lipa srebrzysta Brabant', 'Tilia tomentosa Brabant']);
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Wiśnia piłkowana Kanzan', 'Prunus serrulata Kanzan']);
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Grusza drobnoowocowa Chanticleer', 'Pyrus calleryana Chanticleer']);
