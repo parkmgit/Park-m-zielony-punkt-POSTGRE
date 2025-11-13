@@ -22,26 +22,40 @@ async function getDbClient() {
     console.log('🚀 Initializing PostgreSQL connection');
     const { Pool } = await import('pg');
     
-    console.log('📊 DB Config:', {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || '5432',
-      user: process.env.DB_USER,
-      database: process.env.DB_NAME || 'park_m_trees',
-      hasPassword: !!process.env.DB_PASSWORD,
-      passwordLength: process.env.DB_PASSWORD?.length
-    });
+    // Sprawdź czy jest DATABASE_URL (Neon/Vercel) czy osobne zmienne (lokalne)
+    const databaseUrl = process.env.DATABASE_URL;
     
-    dbClient = new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME || 'park_m_trees',
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: 20,
-      idleTimeoutMillis: 120000,
-      connectionTimeoutMillis: 120000,
-    });
+    if (databaseUrl) {
+      console.log('📊 Using DATABASE_URL connection string');
+      dbClient = new Pool({
+        connectionString: databaseUrl,
+        ssl: { rejectUnauthorized: false },
+        max: 20,
+        idleTimeoutMillis: 120000,
+        connectionTimeoutMillis: 120000,
+      });
+    } else {
+      console.log('📊 Using individual DB config variables');
+      console.log('DB Config:', {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || '5432',
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME || 'park_m_trees',
+        hasPassword: !!process.env.DB_PASSWORD,
+      });
+      
+      dbClient = new Pool({
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'park_m_trees',
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+        max: 20,
+        idleTimeoutMillis: 120000,
+        connectionTimeoutMillis: 120000,
+      });
+    }
     
     dbClient.on('error', (err: any) => {
       console.error('Unexpected error on idle PostgreSQL client', err);
