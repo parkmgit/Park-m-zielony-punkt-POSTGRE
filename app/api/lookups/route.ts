@@ -43,8 +43,8 @@ export async function GET() {
       projects,
       sites,
       species,
-      statuses: ['posadzone', 'podlewanie', 'utrzymanie', 'wymiana', 'usuniete'],
-      actionTypes: ['posadzenie', 'podlewanie', 'przyciecie', 'inspekcja', 'wymiana', 'usuniecie']
+      statuses: ['posadzone', 'podlewanie', 'utrzymanie', 'wymiana', 'usunięte'],
+      actionTypes: ['posadzenie', 'podlewanie', 'przycinanie', 'inspekcja', 'wymiana', 'usunięcie']
     });
   } catch (error) {
     console.error('Error fetching lookups:', error);
