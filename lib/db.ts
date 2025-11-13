@@ -240,9 +240,6 @@ async function insertDefaultData() {
 
       // Insert default users with hashed passwords
       await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Admin Park M', 'admin', 'admin@park-m.pl', passwordHash]);
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Alan', 'brygadzista', 'alan@park-m.pl', passwordHash]);
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Tomasz', 'pracownik', 'tomasz@park-m.pl', passwordHash]);
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Grzegorz', 'pracownik', 'grzegorz@park-m.pl', passwordHash]);
 
       // Insert default species (tylko wybrane gatunki)
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Lipa srebrzysta Brabant', 'Tilia tomentosa Brabant']);
