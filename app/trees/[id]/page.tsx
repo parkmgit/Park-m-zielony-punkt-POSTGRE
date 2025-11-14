@@ -215,9 +215,9 @@ export default function TreeDetailPage() {
         </div>
 
         {/* Photos */}
-        {photos.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Zdjęcia</h2>
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Zdjęcia</h2>
+          {photos.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative">
@@ -232,8 +232,13 @@ export default function TreeDetailPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8">
+              <Camera className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500">Brak zdjęć dla tego drzewa</p>
+            </div>
+          )}
+        </div>
 
         {/* Actions History */}
         <div className="bg-white rounded-xl shadow-lg p-6">

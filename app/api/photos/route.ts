@@ -52,11 +52,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check Cloudinary config
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('Missing Cloudinary configuration');
+      return NextResponse.json(
+        { error: 'Cloudinary not configured - missing environment variables' },
+        { status: 500 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const entityType = formData.get('entity_type') as string;
     const entityId = formData.get('entity_id') as string;
     const takenBy = formData.get('taken_by') as string;
+
+    console.log('Photo upload request:', {
+      entityType,
+      entityId,
+      takenBy,
+      fileSize: file?.size,
+      fileName: file?.name
+    });
 
     if (!file || !entityType || !entityId || !takenBy) {
       return NextResponse.json(
@@ -71,6 +88,8 @@ export async function POST(request: NextRequest) {
     const base64 = buffer.toString('base64');
     const dataURI = `data:${file.type};base64,${base64}`;
 
+    console.log('Uploading to Cloudinary...');
+
     // Upload to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(dataURI, {
       folder: 'park-m-trees',
@@ -80,20 +99,28 @@ export async function POST(request: NextRequest) {
     const url = uploadResult.secure_url;
     const filename = uploadResult.public_id;
 
+    console.log('Cloudinary upload successful:', { url, filename });
+
     // Save to database
     await query(
       'INSERT INTO photos (entity_type, entity_id, filename, url, taken_by) VALUES (?, ?, ?, ?, ?)',
       [entityType, entityId, filename, url, takenBy]
     );
 
+    console.log('Photo saved to database successfully');
+
     return NextResponse.json({
       url,
+      filename,
       message: 'Photo uploaded successfully'
     }, { status: 201 });
   } catch (error) {
     console.error('Error uploading photo:', error);
     return NextResponse.json(
-      { error: 'Failed to upload photo' },
+      { 
+        error: 'Failed to upload photo',
+        details: (error as Error).message 
+      },
       { status: 500 }
     );
   }

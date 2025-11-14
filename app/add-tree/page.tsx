@@ -187,17 +187,30 @@ export default function AddTreePage() {
       const treeId = treeData.id;
 
       // Upload photos
-      for (const photo of photos) {
-        const formData = new FormData();
-        formData.append('file', photo);
-        formData.append('entity_type', 'tree');
-        formData.append('entity_id', treeId.toString());
-        formData.append('taken_by', '1'); // Default user
+      if (photos.length > 0) {
+        console.log(`Uploading ${photos.length} photos for tree ${treeId}`);
+        
+        for (const photo of photos) {
+          const formData = new FormData();
+          formData.append('file', photo);
+          formData.append('entity_type', 'tree');
+          formData.append('entity_id', treeId.toString());
+          formData.append('taken_by', '1'); // Default user
 
-        await fetch('/api/photos', {
-          method: 'POST',
-          body: formData
-        });
+          const photoResponse = await fetch('/api/photos', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!photoResponse.ok) {
+            const errorData = await photoResponse.json();
+            console.error('Failed to upload photo:', errorData);
+            alert(`Błąd przesyłania zdjęcia: ${errorData.error || 'Nieznany błąd'}`);
+          } else {
+            const photoResult = await photoResponse.json();
+            console.log('Photo uploaded successfully:', photoResult);
+          }
+        }
       }
 
       setSuccess(true);
