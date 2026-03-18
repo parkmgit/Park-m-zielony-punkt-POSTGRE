@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-config';
+import { getCurrentUser } from '@/lib/auth-config';
 import { v2 as cloudinary } from 'cloudinary';
+
+export const runtime = 'nodejs';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -52,6 +55,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Wymagane logowanie' },
+        { status: 401 }
+      );
+    }
+
     // Check Cloudinary config
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
       console.error('Missing Cloudinary configuration');
@@ -65,7 +76,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const entityType = formData.get('entity_type') as string;
     const entityId = formData.get('entity_id') as string;
-    const takenBy = formData.get('taken_by') as string;
+    const takenBy = String(user.id);
 
     console.log('Photo upload request:', {
       entityType,
@@ -75,7 +86,7 @@ export async function POST(request: NextRequest) {
       fileName: file?.name
     });
 
-    if (!file || !entityType || !entityId || !takenBy) {
+    if (!file || !(file instanceof File) || !entityType || !entityId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

@@ -89,12 +89,16 @@ export default function TreeDetailPage() {
         formData.append('file', photo);
         formData.append('entity_type', 'tree_action');
         formData.append('entity_id', actionData.id.toString());
-        formData.append('taken_by', '1');
 
-        await fetch('/api/photos', {
+        const photoRes = await fetch('/api/photos', {
           method: 'POST',
           body: formData
         });
+
+        if (!photoRes.ok) {
+          const errorData = await photoRes.json().catch(() => ({}));
+          throw new Error(errorData?.error || 'Failed to upload photo');
+        }
       }
 
       // Reset form

@@ -195,7 +195,6 @@ export default function AddTreePage() {
           formData.append('file', photo);
           formData.append('entity_type', 'tree');
           formData.append('entity_id', treeId.toString());
-          formData.append('taken_by', '1'); // Default user
 
           const photoResponse = await fetch('/api/photos', {
             method: 'POST',
