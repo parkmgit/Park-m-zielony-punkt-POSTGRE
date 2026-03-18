@@ -84,6 +84,8 @@ export default function TreesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [treePhotos, setTreePhotos] = useState<string[]>([]);
   const [photoLoadError, setPhotoLoadError] = useState(false);
+  const [photoSrc, setPhotoSrc] = useState<string>('');
+  const [photoFallbackTried, setPhotoFallbackTried] = useState(false);
   const [treeActions, setTreeActions] = useState<any[]>([]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
@@ -93,6 +95,8 @@ export default function TreesPage() {
     setSelectedTree(tree);
     setIsDrawerOpen(true);
     setPhotoLoadError(false);
+    setPhotoSrc('');
+    setPhotoFallbackTried(false);
     
     // Fetch photos and actions for this tree
     try {
@@ -109,10 +113,12 @@ export default function TreesPage() {
       console.log('Tree photo URLs:', { treeId: tree.id, urls });
 
       setTreePhotos(urls);
+      setPhotoSrc(urls[0] || '');
       setTreeActions(actions);
     } catch (error) {
       console.error('Error fetching tree data:', error);
       setTreePhotos([]);
+      setPhotoSrc('');
       setTreeActions([]);
     }
   };
@@ -851,11 +857,27 @@ export default function TreesPage() {
                 {treePhotos.length > 0 && !photoLoadError ? (
                   <div className="relative group cursor-pointer" onClick={() => { setSelectedPhoto(treePhotos[0]); setIsPhotoModalOpen(true); }}>
                     <img
-                      src={treePhotos[0]}
+                      src={photoSrc || treePhotos[0]}
                       alt="Zdjęcie drzewa"
                       className="w-full h-80 object-cover transition-opacity hover:opacity-90"
                       onError={() => {
-                        console.error('Failed to load tree photo:', { url: treePhotos[0], treeId: selectedTree?.id });
+                        const originalUrl = photoSrc || treePhotos[0];
+                        console.error('Failed to load tree photo:', { url: originalUrl, treeId: selectedTree?.id });
+
+                        if (!photoFallbackTried && typeof originalUrl === 'string' && originalUrl.includes('res.cloudinary.com')) {
+                          // Fallback for cases like HEIC/raw delivery where browser can't render.
+                          // Try to force image delivery and auto format conversion.
+                          const withImageUpload = originalUrl
+                            .replace('/raw/upload/', '/image/upload/')
+                            .replace('/video/upload/', '/image/upload/');
+                          const fallbackUrl = withImageUpload.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+
+                          console.log('Retrying tree photo with fallback URL:', { fallbackUrl });
+                          setPhotoFallbackTried(true);
+                          setPhotoSrc(fallbackUrl);
+                          return;
+                        }
+
                         setPhotoLoadError(true);
                       }}
                     />
