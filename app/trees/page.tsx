@@ -83,6 +83,7 @@ export default function TreesPage() {
   const [selectedTree, setSelectedTree] = useState<Tree | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [treePhotos, setTreePhotos] = useState<string[]>([]);
+  const [photoLoadError, setPhotoLoadError] = useState(false);
   const [treeActions, setTreeActions] = useState<any[]>([]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
@@ -91,6 +92,7 @@ export default function TreesPage() {
   const openTreeDrawer = async (tree: Tree) => {
     setSelectedTree(tree);
     setIsDrawerOpen(true);
+    setPhotoLoadError(false);
     
     // Fetch photos and actions for this tree
     try {
@@ -100,7 +102,11 @@ export default function TreesPage() {
       ]);
       const photos = await photosRes.json();
       const actions = await actionsRes.json();
-      setTreePhotos(photos.map((p: any) => p.url).filter(Boolean));
+      setTreePhotos(
+        photos
+          .map((p: any) => (typeof p?.url === 'string' ? p.url.trim() : ''))
+          .filter((url: string) => Boolean(url) && /^https?:\/\//i.test(url))
+      );
       setTreeActions(actions);
     } catch (error) {
       console.error('Error fetching tree data:', error);
@@ -840,12 +846,13 @@ export default function TreesPage() {
             <div className="overflow-y-auto h-[calc(100vh-72px)]">
               {/* Photo */}
               <div className="w-full">
-                {treePhotos.length > 0 ? (
+                {treePhotos.length > 0 && !photoLoadError ? (
                   <div className="relative group cursor-pointer" onClick={() => { setSelectedPhoto(treePhotos[0]); setIsPhotoModalOpen(true); }}>
                     <img
                       src={treePhotos[0]}
                       alt="Zdjęcie drzewa"
                       className="w-full h-80 object-cover transition-opacity hover:opacity-90"
+                      onError={() => setPhotoLoadError(true)}
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none">
                       <svg className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
