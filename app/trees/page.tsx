@@ -100,7 +100,7 @@ export default function TreesPage() {
       ]);
       const photos = await photosRes.json();
       const actions = await actionsRes.json();
-      setTreePhotos(photos.map((p: any) => p.url));
+      setTreePhotos(photos.map((p: any) => p.url).filter(Boolean));
       setTreeActions(actions);
     } catch (error) {
       console.error('Error fetching tree data:', error);
