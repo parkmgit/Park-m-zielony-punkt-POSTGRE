@@ -101,12 +101,12 @@ export interface CreateTreeDTO {
   longitude: number;
   accuracy?: number;
   notes?: string;
-  created_by: number;
+  created_by?: number;
 }
 
 export interface CreateTreeActionDTO {
-  tree_id: number;
+  tree_id?: number;
   action_type: string;
   notes?: string;
-  performed_by: number;
+  performed_by?: number;
 }

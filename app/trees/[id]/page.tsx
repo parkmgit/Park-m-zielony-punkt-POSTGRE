@@ -19,8 +19,7 @@ export default function TreeDetailPage() {
 
   const [newAction, setNewAction] = useState({
     action_type: 'podlewanie',
-    notes: '',
-    performed_by: 1
+    notes: ''
   });
 
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
@@ -107,7 +106,7 @@ export default function TreeDetailPage() {
       }
 
       // Reset form
-      setNewAction({ action_type: 'podlewanie', notes: '', performed_by: 1 });
+      setNewAction({ action_type: 'podlewanie', notes: '' });
       setNewPhotos([]);
       setPhotoPreview([]);
       setShowActionForm(false);

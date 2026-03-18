@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-config';
 import { CreateTreeActionDTO } from '@/lib/types';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -32,11 +33,21 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Wymagane logowanie' },
+        { status: 401 }
+      );
+    }
+
     const body: CreateTreeActionDTO = await request.json();
+
+    const performedBy = Number(user.id);
 
     await query(
       'INSERT INTO tree_actions (tree_id, action_type, notes, performed_by) VALUES (?, ?, ?, ?)',
-      [params.id, body.action_type, body.notes || null, body.performed_by]
+      [params.id, body.action_type, body.notes || null, performedBy]
     );
 
     // Get the newly created action

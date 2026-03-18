@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db-config';
 import { CreateTreeDTO } from '@/lib/types';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,10 +72,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Wymagane logowanie' },
+        { status: 401 }
+      );
+    }
+
     const body: CreateTreeDTO = await request.json();
     
     console.log('=== POST /api/trees ===');
     console.log('Received body:', JSON.stringify(body, null, 2));
+
+    const createdBy = Number(user.id);
 
     console.log('Inserting with values:', {
       tree_number: body.tree_number || null,
@@ -87,7 +98,7 @@ export async function POST(request: NextRequest) {
       longitude: body.longitude,
       accuracy: body.accuracy || null,
       notes: body.notes || null,
-      created_by: body.created_by
+      created_by: createdBy
     });
 
     await query(
@@ -106,7 +117,7 @@ export async function POST(request: NextRequest) {
         body.longitude,
         body.accuracy || null,
         body.notes || null,
-        body.created_by
+        createdBy
       ]
     );
 
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
     // Also create initial action
     await query(
       'INSERT INTO tree_actions (tree_id, action_type, notes, performed_by) VALUES (?, ?, ?, ?)',
-      [treeId, 'posadzenie', body.notes || 'Drzewo posadzone', body.created_by]
+      [treeId, 'posadzenie', body.notes || 'Drzewo posadzone', createdBy]
     );
 
     console.log('Tree action created successfully');

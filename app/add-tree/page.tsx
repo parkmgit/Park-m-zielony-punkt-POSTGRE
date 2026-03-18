@@ -32,8 +32,7 @@ export default function AddTreePage() {
     latitude: 0,
     longitude: 0,
     accuracy: 0,
-    notes: '',
-    created_by: 1 // Default to first user
+    notes: ''
   });
 
   const [photos, setPhotos] = useState<File[]>([]);

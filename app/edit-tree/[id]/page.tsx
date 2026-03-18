@@ -31,8 +31,7 @@ export default function EditTreePage() {
     latitude: 0,
     longitude: 0,
     accuracy: 0,
-    notes: '',
-    created_by: 0
+    notes: ''
   });
 
   useEffect(() => {
@@ -52,8 +51,7 @@ export default function EditTreePage() {
           latitude: treeData.latitude || 0,
           longitude: treeData.longitude || 0,
           accuracy: treeData.accuracy || 0,
-          notes: treeData.notes || '',
-          created_by: treeData.created_by || 0
+          notes: treeData.notes || ''
         });
         setLookups(lookupsData);
         setLoading(false);
