@@ -206,9 +206,16 @@ export default function AddTreePage() {
               status: photoResponse.status,
               errorData
             });
+
+            const fallbackMessage =
+              photoResponse.status === 413
+                ? 'Zdjęcie jest za duże (max 10MB).'
+                : photoResponse.status === 415
+                  ? 'Nieobsługiwany typ pliku. Wybierz zdjęcie (JPG/PNG/HEIC itp.).'
+                  : 'Nieznany błąd';
             alert(
               `Błąd przesyłania zdjęcia (HTTP ${photoResponse.status}): ` +
-              `${errorData?.error || 'Nieznany błąd'}` +
+              `${errorData?.error || fallbackMessage}` +
               `${errorData?.details ? `\nSzczegóły: ${errorData.details}` : ''}` +
               `${errorData?.requestId ? `\nrequestId: ${errorData.requestId}` : ''}`
             );

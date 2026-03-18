@@ -110,9 +110,15 @@ export default function TreeDetailPage() {
 
         if (!photoRes.ok) {
           const errorData = await photoRes.json().catch(() => ({} as any));
+          const fallbackMessage =
+            photoRes.status === 413
+              ? 'Zdjęcie jest za duże (max 10MB).'
+              : photoRes.status === 415
+                ? 'Nieobsługiwany typ pliku. Wybierz zdjęcie (JPG/PNG/HEIC itp.).'
+                : 'Nieznany błąd';
           const msg =
             `Błąd przesyłania zdjęcia (HTTP ${photoRes.status}): ` +
-            `${errorData?.error || 'Nieznany błąd'}` +
+            `${errorData?.error || fallbackMessage}` +
             `${errorData?.details ? `\nSzczegóły: ${errorData.details}` : ''}` +
             `${errorData?.requestId ? `\nrequestId: ${errorData.requestId}` : ''}`;
           throw new Error(msg);
