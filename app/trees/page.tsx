@@ -85,7 +85,7 @@ export default function TreesPage() {
   const [treePhotos, setTreePhotos] = useState<string[]>([]);
   const [photoLoadError, setPhotoLoadError] = useState(false);
   const [photoSrc, setPhotoSrc] = useState<string>('');
-  const [photoFallbackTried, setPhotoFallbackTried] = useState(false);
+  const [photoFallbackStep, setPhotoFallbackStep] = useState<0 | 1 | 2>(0);
   const [treeActions, setTreeActions] = useState<any[]>([]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
@@ -96,7 +96,7 @@ export default function TreesPage() {
     setIsDrawerOpen(true);
     setPhotoLoadError(false);
     setPhotoSrc('');
-    setPhotoFallbackTried(false);
+    setPhotoFallbackStep(0);
     
     // Fetch photos and actions for this tree
     try {
@@ -864,18 +864,29 @@ export default function TreesPage() {
                         const originalUrl = photoSrc || treePhotos[0];
                         console.error('Failed to load tree photo:', { url: originalUrl, treeId: selectedTree?.id });
 
-                        if (!photoFallbackTried && typeof originalUrl === 'string' && originalUrl.includes('res.cloudinary.com')) {
-                          // Fallback for cases like HEIC/raw delivery where browser can't render.
-                          // Try to force image delivery and auto format conversion.
+                        if (typeof originalUrl === 'string' && originalUrl.includes('res.cloudinary.com')) {
+                          // Fallback for cases like HEIC delivery where browser can't render.
+                          // Step 1: f_auto,q_auto
+                          // Step 2: force JPG
                           const withImageUpload = originalUrl
                             .replace('/raw/upload/', '/image/upload/')
                             .replace('/video/upload/', '/image/upload/');
-                          const fallbackUrl = withImageUpload.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
 
-                          console.log('Retrying tree photo with fallback URL:', { fallbackUrl });
-                          setPhotoFallbackTried(true);
-                          setPhotoSrc(fallbackUrl);
-                          return;
+                          if (photoFallbackStep === 0) {
+                            const fallbackUrl = withImageUpload.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+                            console.log('Retrying tree photo with fallback URL (f_auto):', { fallbackUrl });
+                            setPhotoFallbackStep(1);
+                            setPhotoSrc(fallbackUrl);
+                            return;
+                          }
+
+                          if (photoFallbackStep === 1) {
+                            const fallbackUrl = withImageUpload.replace('/image/upload/', '/image/upload/f_jpg,q_auto/');
+                            console.log('Retrying tree photo with fallback URL (f_jpg):', { fallbackUrl });
+                            setPhotoFallbackStep(2);
+                            setPhotoSrc(fallbackUrl);
+                            return;
+                          }
                         }
 
                         setPhotoLoadError(true);
