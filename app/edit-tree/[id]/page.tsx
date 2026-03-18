@@ -12,6 +12,8 @@ export default function EditTreePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreview, setPhotoPreview] = useState<string[]>([]);
   const [lookups, setLookups] = useState<any>({
     sites: [],
     species: [],
@@ -63,6 +65,26 @@ export default function EditTreePage() {
       });
   }, [treeId]);
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setPhotos(prev => [...prev, ...filesArray]);
+
+      filesArray.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotoPreview(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotoPreview(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -75,6 +97,24 @@ export default function EditTreePage() {
       });
 
       if (response.ok) {
+        if (photos.length > 0) {
+          for (const photo of photos) {
+            const uploadData = new FormData();
+            uploadData.append('file', photo);
+            uploadData.append('entity_type', 'tree');
+            uploadData.append('entity_id', treeId);
+
+            const photoResponse = await fetch('/api/photos', {
+              method: 'POST',
+              body: uploadData
+            });
+
+            if (!photoResponse.ok) {
+              const errorData = await photoResponse.json().catch(() => ({}));
+              alert(`Błąd przesyłania zdjęcia: ${errorData?.error || 'Nieznany błąd'}`);
+            }
+          }
+        }
         alert('Drzewo zaktualizowane!');
         router.push('/trees');
       } else {
@@ -267,6 +307,40 @@ export default function EditTreePage() {
                 rows={4}
                 placeholder="Dodatkowe informacje..."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Dodaj zdjęcia
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoChange}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-2xl"
+              />
+
+              {photoPreview.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  {photoPreview.map((preview, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Przyciski */}
