@@ -102,6 +102,48 @@ export async function POST(request: NextRequest) {
 
     const fileName = file?.name || '';
     const ext = fileName.includes('.') ? fileName.split('.').pop()?.toLowerCase() : '';
+
+    // 10MB limit for stability on mobile and to avoid serverless timeouts
+    const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+    if (typeof file.size === 'number' && file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error: 'File too large',
+          details: `Max file size is ${Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024))}MB`,
+          requestId
+        },
+        { status: 413 }
+      );
+    }
+
+    const EXT_TO_MIME: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      avif: 'image/avif',
+      gif: 'image/gif',
+      heic: 'image/heic',
+      heif: 'image/heif'
+    };
+
+    const mimeFromExt = ext && EXT_TO_MIME[ext] ? EXT_TO_MIME[ext] : '';
+    const mimeFromFile = typeof file.type === 'string' ? file.type.trim().toLowerCase() : '';
+    const isImageMime = mimeFromFile.startsWith('image/');
+    const isKnownExt = Boolean(mimeFromExt);
+
+    // Reject obvious non-image files (but allow empty file.type if ext suggests image)
+    if (mimeFromFile && !isImageMime && !isKnownExt) {
+      return NextResponse.json(
+        {
+          error: 'Unsupported media type',
+          details: `file.type=${mimeFromFile || '(empty)'} ext=${ext || '(none)'}`,
+          requestId
+        },
+        { status: 415 }
+      );
+    }
+
     const isHeic =
       ext === 'heic' ||
       ext === 'heif' ||
@@ -114,9 +156,7 @@ export async function POST(request: NextRequest) {
     const base64 = buffer.toString('base64');
 
     // Some mobile browsers send empty/unknown file.type, especially for HEIC.
-    const contentType =
-      file.type ||
-      (isHeic ? 'image/heic' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'application/octet-stream');
+    const contentType = mimeFromFile || (isHeic ? 'image/heic' : mimeFromExt || 'application/octet-stream');
     const dataURI = `data:${contentType};base64,${base64}`;
 
     console.log('Uploading to Cloudinary...');
