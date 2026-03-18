@@ -10,6 +10,7 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  timeout: Number(process.env.CLOUDINARY_TIMEOUT_MS || 120000),
 });
 
 export async function GET(request: NextRequest) {
@@ -103,13 +104,19 @@ export async function POST(request: NextRequest) {
     const fileName = file?.name || '';
     const ext = fileName.includes('.') ? fileName.split('.').pop()?.toLowerCase() : '';
 
-    // 10MB limit for stability on mobile and to avoid serverless timeouts
-    const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-    if (typeof file.size === 'number' && file.size > MAX_FILE_SIZE_BYTES) {
+    const configuredMaxMbRaw = (process.env.PHOTO_MAX_MB || '').trim();
+    const configuredMaxMb = configuredMaxMbRaw ? Number(configuredMaxMbRaw) : 25;
+    const maxFileSizeBytes = Number.isFinite(configuredMaxMb) && configuredMaxMb > 0
+      ? Math.round(configuredMaxMb * 1024 * 1024)
+      : 0;
+    const fileSizeBytes = typeof file.size === 'number' ? file.size : NaN;
+    const fileSizeMb = Number.isFinite(fileSizeBytes) ? Math.round((fileSizeBytes / (1024 * 1024)) * 100) / 100 : NaN;
+
+    if (maxFileSizeBytes > 0 && Number.isFinite(fileSizeBytes) && fileSizeBytes > maxFileSizeBytes) {
       return NextResponse.json(
         {
           error: 'File too large',
-          details: `Max file size is ${Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024))}MB`,
+          details: `fileName=${fileName || '(unknown)'} fileSizeMB=${Number.isFinite(fileSizeMb) ? fileSizeMb : '(unknown)'} fileType=${(file as any)?.type || '(empty)'} ext=${ext || '(none)'} maxMB=${configuredMaxMb}`,
           requestId
         },
         { status: 413 }
@@ -137,7 +144,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Unsupported media type',
-          details: `file.type=${mimeFromFile || '(empty)'} ext=${ext || '(none)'}`,
+          details: `fileName=${fileName || '(unknown)'} fileSizeMB=${Number.isFinite(fileSizeMb) ? fileSizeMb : '(unknown)'} file.type=${mimeFromFile || '(empty)'} ext=${ext || '(none)'}`,
           requestId
         },
         { status: 415 }
