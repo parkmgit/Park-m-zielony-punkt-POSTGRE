@@ -96,8 +96,13 @@ export default function TreeDetailPage() {
         });
 
         if (!photoRes.ok) {
-          const errorData = await photoRes.json().catch(() => ({}));
-          throw new Error(errorData?.error || 'Failed to upload photo');
+          const errorData = await photoRes.json().catch(() => ({} as any));
+          const msg =
+            `Błąd przesyłania zdjęcia (HTTP ${photoRes.status}): ` +
+            `${errorData?.error || 'Nieznany błąd'}` +
+            `${errorData?.details ? `\nSzczegóły: ${errorData.details}` : ''}` +
+            `${errorData?.requestId ? `\nrequestId: ${errorData.requestId}` : ''}`;
+          throw new Error(msg);
         }
       }
 

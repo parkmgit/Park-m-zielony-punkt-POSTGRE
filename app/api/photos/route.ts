@@ -54,11 +54,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
   try {
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
-        { error: 'Unauthorized - Wymagane logowanie' },
+        { error: 'Unauthorized - Wymagane logowanie', requestId },
         { status: 401 }
       );
     }
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
       console.error('Missing Cloudinary configuration');
       return NextResponse.json(
-        { error: 'Cloudinary not configured - missing environment variables' },
+        { error: 'Cloudinary not configured - missing environment variables', requestId },
         { status: 500 }
       );
     }
@@ -79,6 +82,9 @@ export async function POST(request: NextRequest) {
     const takenBy = String(user.id);
 
     console.log('Photo upload request:', {
+      requestId,
+      userId: user.id,
+      userEmail: user.email,
       entityType,
       entityId,
       takenBy,
@@ -88,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (!file || !(file instanceof File) || !entityType || !entityId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields', requestId },
         { status: 400 }
       );
     }
@@ -123,14 +129,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       url,
       filename,
-      message: 'Photo uploaded successfully'
+      message: 'Photo uploaded successfully',
+      requestId
     }, { status: 201 });
   } catch (error) {
     console.error('Error uploading photo:', error);
     return NextResponse.json(
       { 
         error: 'Failed to upload photo',
-        details: (error as Error).message 
+        details: (error as Error).message,
+        requestId
       },
       { status: 500 }
     );

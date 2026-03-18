@@ -110,8 +110,13 @@ export default function EditTreePage() {
             });
 
             if (!photoResponse.ok) {
-              const errorData = await photoResponse.json().catch(() => ({}));
-              alert(`Błąd przesyłania zdjęcia: ${errorData?.error || 'Nieznany błąd'}`);
+              const errorData = await photoResponse.json().catch(() => ({} as any));
+              alert(
+                `Błąd przesyłania zdjęcia (HTTP ${photoResponse.status}): ` +
+                `${errorData?.error || 'Nieznany błąd'}` +
+                `${errorData?.details ? `\nSzczegóły: ${errorData.details}` : ''}` +
+                `${errorData?.requestId ? `\nrequestId: ${errorData.requestId}` : ''}`
+              );
             }
           }
         }

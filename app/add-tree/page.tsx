@@ -202,9 +202,17 @@ export default function AddTreePage() {
           });
 
           if (!photoResponse.ok) {
-            const errorData = await photoResponse.json();
-            console.error('Failed to upload photo:', errorData);
-            alert(`Błąd przesyłania zdjęcia: ${errorData.error || 'Nieznany błąd'}`);
+            const errorData = await photoResponse.json().catch(() => ({} as any));
+            console.error('Failed to upload photo:', {
+              status: photoResponse.status,
+              errorData
+            });
+            alert(
+              `Błąd przesyłania zdjęcia (HTTP ${photoResponse.status}): ` +
+              `${errorData?.error || 'Nieznany błąd'}` +
+              `${errorData?.details ? `\nSzczegóły: ${errorData.details}` : ''}` +
+              `${errorData?.requestId ? `\nrequestId: ${errorData.requestId}` : ''}`
+            );
           } else {
             const photoResult = await photoResponse.json();
             console.log('Photo uploaded successfully:', photoResult);
