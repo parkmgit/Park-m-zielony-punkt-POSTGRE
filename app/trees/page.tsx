@@ -89,7 +89,19 @@ export default function TreesPage() {
   const [treeActions, setTreeActions] = useState<any[]>([]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
+  const [photoModalLoading, setPhotoModalLoading] = useState(false);
   const [expandedTreeId, setExpandedTreeId] = useState<number | null>(null);
+
+  const toCloudinaryDisplayUrl = (url: string) => {
+    if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com')) return url;
+
+    const withImageUpload = url
+      .replace('/raw/upload/', '/image/upload/')
+      .replace('/video/upload/', '/image/upload/');
+
+    // Prefer modern format conversion
+    return withImageUpload.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+  };
 
   const openTreeDrawer = async (tree: Tree) => {
     setSelectedTree(tree);
@@ -855,7 +867,15 @@ export default function TreesPage() {
               {/* Photo */}
               <div className="w-full">
                 {treePhotos.length > 0 && !photoLoadError ? (
-                  <div className="relative group cursor-pointer" onClick={() => { setSelectedPhoto(treePhotos[0]); setIsPhotoModalOpen(true); }}>
+                  <div
+                    className="relative group cursor-pointer"
+                    onClick={() => {
+                      const urlForModal = toCloudinaryDisplayUrl(photoSrc || treePhotos[0]);
+                      setSelectedPhoto(urlForModal);
+                      setPhotoModalLoading(true);
+                      setIsPhotoModalOpen(true);
+                    }}
+                  >
                     <img
                       src={photoSrc || treePhotos[0]}
                       alt="Zdjęcie drzewa"
@@ -1036,10 +1056,26 @@ export default function TreesPage() {
           >
             <X className="w-8 h-8 text-white" />
           </button>
+          {photoModalLoading && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </div>
+          )}
           <img
             src={selectedPhoto}
             alt="Pełne zdjęcie"
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onLoad={() => setPhotoModalLoading(false)}
+            onError={() => {
+              // If fallback still fails, try forcing JPG
+              if (selectedPhoto.includes('res.cloudinary.com') && !selectedPhoto.includes('/f_jpg')) {
+                const forcedJpg = selectedPhoto.replace('/image/upload/', '/image/upload/f_jpg,q_auto/');
+                setSelectedPhoto(forcedJpg);
+                setPhotoModalLoading(true);
+                return;
+              }
+              setPhotoModalLoading(false);
+            }}
             onClick={(e) => e.stopPropagation()}
           />
         </div>
