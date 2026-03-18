@@ -16,6 +16,9 @@ export default function TreeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showActionForm, setShowActionForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string>('');
+  const [photoModalLoading, setPhotoModalLoading] = useState(false);
 
   const [newAction, setNewAction] = useState({
     action_type: 'podlewanie',
@@ -24,6 +27,17 @@ export default function TreeDetailPage() {
 
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string[]>([]);
+
+  const toCloudinaryDisplayUrl = (url: string, forceJpg = false) => {
+    if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com')) return url;
+
+    const withImageUpload = url
+      .replace('/raw/upload/', '/image/upload/')
+      .replace('/video/upload/', '/image/upload/');
+
+    const transform = forceJpg ? 'f_jpg,q_auto' : 'f_auto,q_auto';
+    return withImageUpload.replace('/image/upload/', `/image/upload/${transform}/`);
+  };
 
   useEffect(() => {
     fetchTreeData();
@@ -222,6 +236,35 @@ export default function TreeDetailPage() {
           )}
         </div>
 
+        {isPhotoModalOpen && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4"
+            onClick={() => setIsPhotoModalOpen(false)}
+          >
+            {photoModalLoading && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+              </div>
+            )}
+            <img
+              src={selectedPhoto}
+              alt="Pełne zdjęcie"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onLoad={() => setPhotoModalLoading(false)}
+              onError={() => {
+                if (selectedPhoto.includes('res.cloudinary.com') && !selectedPhoto.includes('/f_jpg')) {
+                  const forcedJpg = selectedPhoto.replace('/image/upload/', '/image/upload/f_jpg,q_auto/');
+                  setSelectedPhoto(forcedJpg);
+                  setPhotoModalLoading(true);
+                  return;
+                }
+                setPhotoModalLoading(false);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
         {/* Photos */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Zdjęcia</h2>
@@ -230,9 +273,21 @@ export default function TreeDetailPage() {
               {photos.map((photo) => (
                 <div key={photo.id} className="relative">
                   <img
-                    src={photo.url}
-                    alt="Tree photo"
-                    className="w-full h-48 object-cover rounded-lg"
+                    src={toCloudinaryDisplayUrl(photo.url)}
+                    alt="Zdjęcie drzewa"
+                    className="w-full h-48 object-cover rounded-lg cursor-pointer"
+                    onClick={() => {
+                      const urlForModal = toCloudinaryDisplayUrl(photo.url);
+                      setSelectedPhoto(urlForModal);
+                      setPhotoModalLoading(true);
+                      setIsPhotoModalOpen(true);
+                    }}
+                    onError={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      if (img.dataset.fallbackTried === '1') return;
+                      img.dataset.fallbackTried = '1';
+                      img.src = toCloudinaryDisplayUrl(photo.url, true);
+                    }}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2 rounded-b-lg">
                     {new Date(photo.taken_at).toLocaleDateString('pl-PL')}
