@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Calendar, User, Building, Plus, Loader2, Camera } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, Building, Plus, Loader2, Camera, Bell, TreePine, Activity, Move } from 'lucide-react';
 import { Tree, TreeAction, Photo } from '@/lib/types';
+import dynamic from 'next/dynamic';
+
+const LocationPicker = dynamic(() => import('@/components/LocationPicker'), { ssr: false });
 
 export default function TreeDetailPage() {
   const params = useParams();
@@ -22,11 +25,18 @@ export default function TreeDetailPage() {
 
   const [newAction, setNewAction] = useState({
     action_type: 'podlewanie',
-    notes: ''
+    notes: '',
+    next_watering_at: '',
+    remind_before_hours: 24
   });
 
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string[]>([]);
+
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [pendingLat, setPendingLat] = useState<number>(0);
+  const [pendingLng, setPendingLng] = useState<number>(0);
+  const [savingLocation, setSavingLocation] = useState(false);
 
   const toCloudinaryDisplayUrl = (url: string, forceJpg = false) => {
     if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com')) return url;
@@ -126,7 +136,7 @@ export default function TreeDetailPage() {
       }
 
       // Reset form
-      setNewAction({ action_type: 'podlewanie', notes: '' });
+      setNewAction({ action_type: 'podlewanie', notes: '', next_watering_at: '', remind_before_hours: 24 });
       setNewPhotos([]);
       setPhotoPreview([]);
       setShowActionForm(false);
@@ -164,80 +174,135 @@ export default function TreeDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'posadzone': return 'bg-green-100 text-green-800';
-      case 'utrzymanie': return 'bg-blue-100 text-blue-800';
-      case 'wymiana': return 'bg-yellow-100 text-yellow-800';
-      case 'usuniete': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'posadzone': return 'bg-green-500/20 text-green-400 border border-green-500/30';
+      case 'utrzymanie': return 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';
+      case 'wymiana': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+      case 'usuniete': return 'bg-red-500/20 text-red-400 border border-red-500/30';
+      default: return 'bg-white/10 text-white/40 border border-white/10';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 py-8">
+    <div className="min-h-screen py-8 pb-28 md:pb-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Link href="/trees" className="inline-flex items-center text-green-600 hover:text-green-700 mb-6">
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Powrót do listy
+        <Link href="/trees" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-6 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Powrót do listy drzew
         </Link>
 
         {/* Tree Details */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className="glass rounded-3xl p-8 gradient-border-green mb-6 animate-fade-in-up">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              <h1 className="text-2xl font-black text-gradient-green mb-2">
                 {tree.species_name || 'Nieznany gatunek'}
               </h1>
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(tree.status)}`}>
                 {tree.status}
               </span>
             </div>
-            <div className="text-right text-sm text-gray-500">
+            <div className="text-right text-xs text-white/25">
               ID: {tree.id}
             </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="flex items-center gap-2 text-gray-700">
-              <Building className="w-5 h-5 text-green-600" />
+            <div className="flex items-center gap-3">
+              <Building className="w-4 h-4 text-[#22c55e] flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-500">Budowa</p>
-                <p className="font-medium">{tree.site_code} - {tree.site_name}</p>
+                <p className="text-xs text-white/40">Budowa</p>
+                <p className="font-semibold text-white text-sm">{tree.site_code} - {tree.site_name}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-700">
-              <Calendar className="w-5 h-5 text-green-600" />
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-[#22c55e] flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-500">Data posadzenia</p>
-                <p className="font-medium">{new Date(tree.plant_date).toLocaleDateString('pl-PL')}</p>
+                <p className="text-xs text-white/40">Data posadzenia</p>
+                <p className="font-semibold text-white text-sm">{new Date(tree.plant_date).toLocaleDateString('pl-PL')}</p>
               </div>
             </div>
 
             {tree.worker_name && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <User className="w-5 h-5 text-green-600" />
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 text-[#22c55e] flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-gray-500">Wykonawca</p>
-                  <p className="font-medium">{tree.worker_name}</p>
+                  <p className="text-xs text-white/40">Wykonawca</p>
+                  <p className="font-semibold text-white text-sm">{tree.worker_name}</p>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-gray-700">
-              <MapPin className="w-5 h-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-500">Lokalizacja GPS</p>
-                <p className="font-medium text-xs">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-4 h-4 text-[#22c55e] flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-white/40">Lokalizacja GPS</p>
+                <p className="font-medium text-xs text-white/70">
                   {tree.latitude.toFixed(6)}, {tree.longitude.toFixed(6)}
                 </p>
+                <button
+                  onClick={() => { setPendingLat(tree.latitude); setPendingLng(tree.longitude); setShowLocationPicker(true); }}
+                  className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-xl transition-all hover:scale-105"
+                  style={{background:'rgba(34,197,94,0.15)',border:'1px solid rgba(34,197,94,0.35)',color:'#22c55e'}}
+                >
+                  <Move className="w-3 h-3" strokeWidth={2} /> Zmień położenie
+                </button>
               </div>
             </div>
           </div>
 
           {tree.notes && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500 mb-1">Notatki</p>
-              <p className="text-gray-700">{tree.notes}</p>
+            <div className="mt-4 p-4 glass rounded-2xl border border-white/10">
+              <p className="text-xs text-white/40 mb-1">Notatki</p>
+              <p className="text-white/70 text-sm">{tree.notes}</p>
+            </div>
+          )}
+
+          {showLocationPicker && (
+            <div className="mt-5 rounded-2xl overflow-hidden" style={{border:'1px solid rgba(34,197,94,0.3)'}}>
+              <div className="px-4 py-2.5 flex items-center justify-between" style={{background:'rgba(34,197,94,0.08)'}}>
+                <div className="flex items-center gap-2">
+                  <Move className="w-4 h-4" style={{color:'#22c55e'}} />
+                  <span className="text-sm font-bold" style={{color:'#22c55e'}}>Przećwiągnij pinezkę na nowe miejsce</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/40 font-mono">{pendingLat.toFixed(6)}, {pendingLng.toFixed(6)}</span>
+                </div>
+              </div>
+              <LocationPicker
+                lat={tree.latitude}
+                lng={tree.longitude}
+                onChange={(lat, lng) => { setPendingLat(lat); setPendingLng(lng); }}
+              />
+              <div className="px-4 py-3 flex gap-2" style={{background:'rgba(4,6,15,0.8)'}}>
+                <button
+                  onClick={async () => {
+                    setSavingLocation(true);
+                    try {
+                      const res = await fetch(`/api/trees/${treeId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ latitude: pendingLat, longitude: pendingLng })
+                      });
+                      if (res.ok) {
+                        setTree({ ...tree, latitude: pendingLat, longitude: pendingLng });
+                        setShowLocationPicker(false);
+                      } else { alert('Błąd zapisu'); }
+                    } finally { setSavingLocation(false); }
+                  }}
+                  disabled={savingLocation}
+                  className="flex items-center gap-2 font-bold text-sm text-white px-4 py-2 rounded-2xl disabled:opacity-50 transition-all hover:scale-105"
+                  style={{background:'linear-gradient(135deg,#16a34a,#22c55e)',boxShadow:'0 4px 12px rgba(34,197,94,0.4)'}}
+                >
+                  {savingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                  Zapisz nowe położenie
+                </button>
+                <button
+                  onClick={() => setShowLocationPicker(false)}
+                  className="px-4 py-2 rounded-2xl text-sm font-medium text-white/40 hover:text-white transition-colors"
+                >
+                  Anuluj
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -272,16 +337,19 @@ export default function TreeDetailPage() {
         )}
 
         {/* Photos */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Zdjęcia</h2>
+        <div className="glass rounded-3xl gradient-border-green p-8 mb-6 animate-fade-in-up" style={{animationDelay:'0.1s'}}>
+          <div className="flex items-center gap-2 mb-5">
+            <Camera className="w-5 h-5 text-[#22c55e]" />
+            <h2 className="text-lg font-bold text-white">Zdjęcia</h2>
+          </div>
           {photos.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {photos.map((photo) => (
-                <div key={photo.id} className="relative">
+                <div key={photo.id} className="relative overflow-hidden rounded-2xl group/photo">
                   <img
                     src={toCloudinaryDisplayUrl(photo.url)}
                     alt="Zdjęcie drzewa"
-                    className="w-full h-48 object-cover rounded-lg cursor-pointer"
+                    className="w-full h-48 object-cover cursor-pointer group-hover/photo:scale-105 transition-transform duration-300"
                     onClick={() => {
                       const urlForModal = toCloudinaryDisplayUrl(photo.url);
                       setSelectedPhoto(urlForModal);
@@ -303,19 +371,22 @@ export default function TreeDetailPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <Camera className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">Brak zdjęć dla tego drzewa</p>
+              <Camera className="w-12 h-12 text-white/15 mx-auto mb-2" />
+              <p className="text-white/30 text-sm">Brak zdjęć dla tego drzewa</p>
             </div>
           )}
         </div>
 
         {/* Actions History */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Historia Działań</h2>
+        <div className="glass rounded-3xl gradient-border-green p-8 animate-fade-in-up" style={{animationDelay:'0.2s'}}>
+          <div className="flex justify-between items-center mb-5">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-[#22c55e]" />
+              <h2 className="text-lg font-bold text-white">Historia Działań</h2>
+            </div>
             <button
               onClick={() => setShowActionForm(!showActionForm)}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-500 text-white px-4 py-2 rounded-full hover:shadow-lg hover:shadow-green-500/30 transition-all"
             >
               <Plus className="w-4 h-4" />
               Dodaj Akcję
@@ -324,16 +395,16 @@ export default function TreeDetailPage() {
 
           {/* Add Action Form */}
           {showActionForm && (
-            <form onSubmit={handleSubmitAction} className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <form onSubmit={handleSubmitAction} className="mb-6 p-4 glass rounded-2xl border border-white/10">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold text-white/50 mb-1">
                     Typ akcji
                   </label>
                   <select
                     value={newAction.action_type}
                     onChange={(e) => setNewAction({ ...newAction, action_type: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    className="input-modern"
                   >
                     <option value="podlewanie">Podlewanie</option>
                     <option value="przyciecie">Przycięcie</option>
@@ -343,21 +414,60 @@ export default function TreeDetailPage() {
                   </select>
                 </div>
 
+                {newAction.action_type === 'podlewanie' && (
+                  <div className="grid md:grid-cols-2 gap-4 rounded-2xl border border-green-500/25 p-4" style={{background:'rgba(34,197,94,0.06)'}}>
+                    <div>
+                      <label className="block text-xs font-semibold text-white/50 mb-1">
+                        Następne podlewanie
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={newAction.next_watering_at}
+                        onChange={(e) => setNewAction({ ...newAction, next_watering_at: e.target.value })}
+                        className="input-modern"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-white/50 mb-1">
+                        Powiadom ile godzin wcześniej
+                      </label>
+                      <select
+                        value={newAction.remind_before_hours}
+                        onChange={(e) => setNewAction({ ...newAction, remind_before_hours: Number(e.target.value) })}
+                        className="input-modern"
+                      >
+                        <option value={0}>W dniu podlewania</option>
+                        <option value={6}>6 godzin wczesniej</option>
+                        <option value={12}>12 godzin wczesniej</option>
+                        <option value={24}>1 dzien wczesniej</option>
+                        <option value={48}>2 dni wczesniej</option>
+                        <option value={72}>3 dni wczesniej</option>
+                        <option value={168}>7 dni wczesniej</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2 flex items-start gap-2 text-sm text-green-300">
+                      <Bell className="w-4 h-4 mt-0.5" />
+                      <span>Przypomnienie trafi do osoby zapisujacej to podlewanie.</span>
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold text-white/50 mb-1">
                     Notatki
                   </label>
                   <textarea
                     value={newAction.notes}
                     onChange={(e) => setNewAction({ ...newAction, notes: e.target.value })}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    className="input-modern"
                     placeholder="Opis wykonanej akcji..."
+                    style={{resize:'vertical'}}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold text-white/50 mb-1">
                     Zdjęcia (opcjonalnie)
                   </label>
                   <input
@@ -386,7 +496,7 @@ export default function TreeDetailPage() {
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    className="flex-1 btn-primary disabled:opacity-50"
                   >
                     {actionLoading ? 'Zapisywanie...' : 'Zapisz Akcję'}
                   </button>
@@ -397,7 +507,7 @@ export default function TreeDetailPage() {
                       setNewPhotos([]);
                       setPhotoPreview([]);
                     }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="px-4 py-2 glass rounded-2xl text-white/40 hover:text-white border border-white/10 text-sm transition-colors"
                   >
                     Anuluj
                   </button>
@@ -407,24 +517,24 @@ export default function TreeDetailPage() {
           )}
 
           {/* Actions List */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             {actions.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Brak historii działań</p>
+              <p className="text-center text-white/25 py-8 text-sm">Brak historii działań</p>
             ) : (
               actions.map((action) => (
-                <div key={action.id} className="border-l-4 border-green-500 pl-4 py-2">
+                <div key={action.id} className="glass rounded-2xl px-4 py-3 border-l-4" style={{borderLeftColor:'#22c55e'}}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-gray-800 capitalize">
+                      <h3 className="font-bold text-white text-sm capitalize">
                         {action.action_type}
                       </h3>
                       {action.notes && (
-                        <p className="text-sm text-gray-600 mt-1">{action.notes}</p>
+                        <p className="text-xs text-white/50 mt-1">{action.notes}</p>
                       )}
                     </div>
-                    <div className="text-right text-sm text-gray-500">
-                      <p>{new Date(action.performed_at).toLocaleDateString('pl-PL')}</p>
-                      <p>{action.performer_name}</p>
+                    <div className="text-right">
+                      <p className="text-xs text-white/40">{new Date(action.performed_at).toLocaleDateString('pl-PL')}</p>
+                      <p className="text-xs text-[#22c55e]/70">{action.performer_name}</p>
                     </div>
                   </div>
                 </div>

@@ -29,25 +29,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert species
-    await query(
-      'INSERT INTO species (name, scientific_name) VALUES (?, ?)',
+    // Check if soft-deleted species with this name exists — reactivate it
+    const existing = await queryOne('SELECT * FROM species WHERE name = ?', [name]);
+    if (existing) {
+      if ((existing as any).active) {
+        return NextResponse.json(
+          { error: 'Gatunek o tej nazwie już istnieje' },
+          { status: 400 }
+        );
+      }
+      // Reactivate soft-deleted
+      const reactivated = await queryOne(
+        'UPDATE species SET active = true, scientific_name = ? WHERE name = ? RETURNING *',
+        [scientific_name || (existing as any).scientific_name, name]
+      );
+      return NextResponse.json(reactivated, { status: 201 });
+    }
+
+    const species = await queryOne(
+      'INSERT INTO species (name, scientific_name) VALUES (?, ?) RETURNING *',
       [name, scientific_name || null]
     );
-
-    // Get the newly created species
-    const species = await queryOne('SELECT * FROM species WHERE name = ? ORDER BY id DESC LIMIT 1', [name]);
 
     return NextResponse.json(species, { status: 201 });
   } catch (error: any) {
     console.error('Error creating species:', error);
-    if (error.message?.includes('UNIQUE constraint')) {
+    if (error.message?.includes('duplicate key') || error.message?.includes('unique constraint') || error.message?.includes('UNIQUE constraint')) {
       return NextResponse.json(
         { error: 'Gatunek o tej nazwie już istnieje' },
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: 'Failed to create species' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create species', details: error.message }, { status: 500 });
   }
 }
 
@@ -61,7 +74,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Soft delete - set active to false
-    await query('UPDATE species SET active = false WHERE id = ?', [id]);
+    await query('UPDATE species SET active = false WHERE id = $1', [id]);
 
     return NextResponse.json({ success: true, message: 'Gatunek został usunięty' });
   } catch (error) {
@@ -92,12 +105,12 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(species);
   } catch (error: any) {
     console.error('Error updating species:', error);
-    if (error.message?.includes('UNIQUE constraint')) {
+    if (error.message?.includes('duplicate key') || error.message?.includes('unique constraint') || error.message?.includes('UNIQUE constraint')) {
       return NextResponse.json(
         { error: 'Gatunek o tej nazwie już istnieje' },
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: 'Failed to update species' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update species', details: error.message }, { status: 500 });
   }
 }

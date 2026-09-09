@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { TreePine, LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { TreePine, LogIn, Eye, EyeOff, MapPin, Camera, Shield, Smartphone } from 'lucide-react';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -65,33 +65,105 @@ export default function LoginPage() {
     }
   };
 
+  const features = [
+    { icon: MapPin, text: 'Lokalizacja GPS z precyzją do 1m' },
+    { icon: Camera, text: 'Zdjęcia i dokumentacja każdego drzewa' },
+    { icon: Shield, text: 'Bezpieczny dostęp oparty na rolach' },
+    { icon: Smartphone, text: 'Działa na urządzeniach mobilnych' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <TreePine className="w-20 h-20 text-[#22c55e] mx-auto mb-4" strokeWidth={1.5} />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Park M
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            System Ewidencji Drzew
+    <div className="min-h-screen bg-slate-950 flex overflow-hidden">
+
+      {/* ===== LEFT PANEL – dekoracyjny ===== */}
+      <div className="hidden lg:flex lg:w-[52%] relative flex-col justify-between p-14 overflow-hidden">
+
+        {/* Tło gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-green-950/30 to-slate-950" />
+        <div className="absolute inset-0 bg-dot-grid opacity-60" />
+
+        {/* Orby świetlne */}
+        <div className="orb   absolute top-20  left-20  w-72 h-72 rounded-full bg-green-500/8  blur-3xl" />
+        <div className="orb-2 absolute bottom-32 right-10 w-96 h-96 rounded-full bg-emerald-400/6 blur-3xl" />
+        <div className="orb-3 absolute top-1/2  left-1/2  w-64 h-64 rounded-full bg-teal-500/8  blur-3xl -translate-x-1/2 -translate-y-1/2" />
+
+        {/* Linia neonowa prawa */}
+        <div className="neon-line-right absolute right-0 top-16 bottom-16" />
+
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#22c55e]/20 border border-[#22c55e]/40 flex items-center justify-center">
+            <TreePine className="w-6 h-6 text-[#22c55e]" strokeWidth={1.5} />
+          </div>
+          <span className="text-white font-bold text-xl tracking-tight">Zielony Punkt</span>
+          <span className="ml-auto flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            Online
+          </span>
+        </div>
+
+        {/* Centralny content */}
+        <div className="relative z-10 my-auto">
+          <div className="relative mb-8 inline-block">
+            <div className="absolute inset-0 bg-[#22c55e]/15 blur-2xl rounded-full scale-150" />
+            <TreePine
+              className="relative w-28 h-28 text-[#22c55e] animate-float drop-shadow-[0_0_24px_rgba(34,197,94,0.6)]"
+              strokeWidth={1.1}
+            />
+          </div>
+          <h2 className="text-5xl font-black text-white mb-4 leading-tight">
+            System ewidencji<br/>
+            <span className="text-gradient-green">drzew</span>
+          </h2>
+          <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
+            Profesjonalne narzędzie do zarządzania zielenią miejską dla Grupy Park M.
           </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur rounded-3xl shadow-lg dark:shadow-[0_0_30px_rgba(34,197,94,0.5)] p-8 border-[3px] border-gray-200 dark:border-[#22c55e]">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-[#22c55e] mb-2">
-              Zaloguj się
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-slate-300">
-              Wprowadź swoje dane logowania
-            </p>
+        {/* Feature list */}
+        <div className="relative z-10 space-y-3">
+          {features.map(({ icon: Icon, text }, i) => (
+            <div
+              key={text}
+              className="flex items-center gap-3 animate-fade-in-up"
+              style={{ animationDelay: `${0.1 * i}s` }}
+            >
+              <div className="w-8 h-8 rounded-xl bg-[#22c55e]/15 border border-[#22c55e]/25 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-4 h-4 text-[#22c55e]" strokeWidth={1.5} />
+              </div>
+              <span className="text-slate-300 text-sm">{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ===== RIGHT PANEL – formularz ===== */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-slate-950 relative">
+        <div className="absolute inset-0 bg-dot-grid opacity-20" />
+
+        <div className="relative z-10 w-full max-w-md animate-fade-in-up">
+
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-10">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <TreePine className="w-10 h-10 text-[#22c55e] animate-float" strokeWidth={1.3} />
+              <span className="text-2xl font-black text-gradient-green">Zielony Punkt</span>
+            </div>
+            <p className="text-slate-400 text-sm">System Ewidencji Drzew · Grupa Park M</p>
           </div>
 
+          {/* Heading */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-white mb-1.5">Witaj z powrotem 👋</h2>
+            <p className="text-slate-400">Zaloguj się, aby zarządzać ewidencją drzew</p>
+          </div>
+
+          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-300">
+                Adres e-mail
               </label>
               <input
                 type="email"
@@ -99,15 +171,16 @@ export default function LoginPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="twoj.email@park-m.pl"
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-[#22c55e]/50 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:border-green-500 dark:focus:border-[#22c55e] transition-colors"
+                placeholder="imie.nazwisko@park-m.pl"
+                className="input-modern"
                 disabled={loading}
                 required
+                autoComplete="email"
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-slate-300">
                 Hasło
               </label>
               <div className="relative">
@@ -118,59 +191,43 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-gray-300 dark:border-[#22c55e]/50 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:border-green-500 dark:focus:border-[#22c55e] transition-colors"
+                  className="input-modern pr-12"
                   disabled={loading}
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#22c55e] transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" strokeWidth={1.5} />
-                  ) : (
-                    <Eye className="w-5 h-5" strokeWidth={1.5} />
-                  )}
+                  {showPassword
+                    ? <EyeOff className="w-5 h-5" strokeWidth={1.5} />
+                    : <Eye className="w-5 h-5" strokeWidth={1.5} />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/30">
+                <div className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                <p className="text-sm text-red-400">{error}</p>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 dark:bg-[#22c55e] hover:bg-green-700 dark:hover:bg-[#16a34a] text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <LogIn className="w-5 h-5" strokeWidth={1.5} />
+            <button type="submit" disabled={loading} className="btn-primary mt-2">
+              <LogIn className="w-5 h-5" strokeWidth={2} />
               {loading ? 'Logowanie...' : 'Zaloguj się'}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
-            <Link
-              href="/register"
-              className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-[#22c55e] transition-colors mb-3"
-            >
-              <UserPlus className="w-4 h-4" strokeWidth={1.5} />
-              Nie masz konta? Zarejestruj się
-            </Link>
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              Po zalogowaniu będziesz mógł dodawać i zarządzać drzewami
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-slate-800 flex justify-center">
+            <p className="text-xs text-slate-600">
+              Aplikacja działa offline po pierwszym załadowaniu
             </p>
           </div>
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Aplikacja działa offline po pierwszym załadowaniu
-          </p>
         </div>
       </div>
     </div>

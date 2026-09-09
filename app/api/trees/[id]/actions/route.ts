@@ -56,6 +56,31 @@ export async function POST(
       [params.id]
     );
 
+    if (body.action_type === 'podlewanie' && body.next_watering_at) {
+      const remindBeforeHours = Number(body.remind_before_hours || 24);
+
+      await query(
+        `UPDATE watering_reminders
+         SET status = 'done', updated_at = CURRENT_TIMESTAMP
+         WHERE tree_id = ? AND assigned_user_id = ? AND status = 'active' AND due_at <= CURRENT_TIMESTAMP`,
+        [params.id, performedBy]
+      );
+
+      await query(
+        `INSERT INTO watering_reminders (
+          tree_id, assigned_user_id, source_action_id, due_at, remind_before_hours, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          params.id,
+          performedBy,
+          newAction[0].id,
+          body.next_watering_at,
+          Math.max(0, remindBeforeHours),
+          performedBy
+        ]
+      );
+    }
+
     // Update tree's updated_at timestamp
     await query('UPDATE trees SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [params.id]);
 

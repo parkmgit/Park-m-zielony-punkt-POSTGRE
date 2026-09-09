@@ -99,6 +99,26 @@ export async function PUT(
   }
 }
 
+// PATCH - update only location
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+    if (body.latitude === undefined || body.longitude === undefined) {
+      return NextResponse.json({ error: 'latitude and longitude required' }, { status: 400 });
+    }
+    await query(
+      `UPDATE trees SET latitude = $1, longitude = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+      [body.latitude, body.longitude, params.id]
+    );
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Failed to update location', details: error.message }, { status: 500 });
+  }
+}
+
 // DELETE tree
 export async function DELETE(
   request: NextRequest,

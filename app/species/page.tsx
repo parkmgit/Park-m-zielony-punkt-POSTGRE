@@ -64,31 +64,23 @@ export default function SpeciesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-8">
+    <div className="min-h-screen py-8 pb-28 md:pb-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-gray-600 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Powrót do strony głównej
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Powrót
+          </Link>
+          <Link href="/add-species" className="inline-flex items-center gap-2 font-bold text-sm text-white px-4 py-2 rounded-2xl transition-all hover:scale-105" style={{background:'linear-gradient(135deg,#16a34a,#22c55e)',boxShadow:'0 4px 16px rgba(34,197,94,0.35)'}}>
+            <Plus className="w-4 h-4" /> Dodaj Gatunek
+          </Link>
+        </div>
 
-        <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur rounded-3xl shadow-lg dark:shadow-[0_0_30px_rgba(34,197,94,0.3)] p-8 border-[3px] border-gray-200 dark:border-[#22c55e]">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <Leaf className="w-8 h-8 text-green-600 dark:text-[#22c55e]" />
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-[#22c55e]">
-                Gatunki Drzew
-              </h1>
+        <div className="glass rounded-3xl p-8 gradient-border-green">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-lime-500 to-green-600 flex items-center justify-center">
+              <Leaf className="w-5 h-5 text-white" />
             </div>
-            <Link
-              href="/add-species"
-              className="inline-flex items-center gap-2 bg-green-600 dark:bg-[#22c55e] text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-500 transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              Dodaj Gatunek
-            </Link>
+            <h1 className="text-2xl font-black text-gradient-green">Gatunki Drzew</h1>
           </div>
 
           {loading ? (
@@ -109,40 +101,25 @@ export default function SpeciesPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {species.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                >
+                <div key={item.id} className="glass rounded-2xl flex items-center justify-between px-4 py-3 hover:-translate-y-0.5 transition-all">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800 dark:text-white">
-                      {item.name}
-                    </h3>
+                    <h3 className="font-semibold text-white text-sm">{item.name}</h3>
                     {item.scientific_name && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                        {item.scientific_name}
-                      </p>
+                      <p className="text-xs text-white/40 italic mt-0.5">{item.scientific_name}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleDelete(item.id, item.name)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      title="Usuń gatunek"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+                  <button onClick={() => handleDelete(item.id, item.name)} className="w-8 h-8 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Usuń">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Łącznie: <span className="font-semibold">{species.length}</span> gatunków
-            </p>
+          <div className="mt-5 pt-5 border-t border-white/8">
+            <p className="text-xs text-white/30">Łącznie: <span className="font-bold text-white/60">{species.length}</span> gatunków</p>
           </div>
         </div>
       </div>

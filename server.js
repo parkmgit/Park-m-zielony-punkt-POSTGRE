@@ -3,10 +3,13 @@ const { parse } = require('url');
 const next = require('next');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = process.env.HOSTNAME || 'localhost';
-const port = process.env.PORT || 3000;
+const hostname = 'localhost';
+// iisnode sets PORT to a named pipe path (e.g. \\.\pipe\...)
+// next() needs a numeric port, so parse separately
+const listenTarget = process.env.PORT || 3000;
+const nextPort = parseInt(listenTarget) || 3000;
 
-const app = next({ dev, hostname, port });
+const app = next({ dev, hostname, port: nextPort });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -24,7 +27,7 @@ app.prepare().then(() => {
       console.error(err);
       process.exit(1);
     })
-    .listen(port, () => {
-      console.log(`> Ready on http://${hostname}:${port}`);
+    .listen(listenTarget, () => {
+      console.log(`> Ready on http://${hostname}:${listenTarget}`);
     });
 });

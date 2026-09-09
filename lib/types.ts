@@ -77,6 +77,24 @@ export interface TreeAction {
   performer_name?: string;
 }
 
+export interface WateringReminder {
+  id: number;
+  tree_id: number;
+  assigned_user_id: number;
+  source_action_id?: number;
+  due_at: string;
+  remind_before_hours: number;
+  status: 'active' | 'done' | 'cancelled';
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  tree_number?: string;
+  species_name?: string;
+  site_name?: string;
+  site_code?: string;
+  assigned_user_name?: string;
+}
+
 export interface Photo {
   id: number;
   entity_type: 'tree' | 'tree_action';
@@ -109,4 +127,6 @@ export interface CreateTreeActionDTO {
   action_type: string;
   notes?: string;
   performed_by?: number;
+  next_watering_at?: string;
+  remind_before_hours?: number;
 }

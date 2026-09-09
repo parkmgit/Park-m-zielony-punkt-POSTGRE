@@ -183,11 +183,6 @@ Hasło: password123
 **Łączny czas: ~5-10 minut**
 
 ---
-
-## 🎯 NASTĘPNE KROKI:
-
-**Którą opcję wybierasz?**
-
 ### Opcja 1: Automatyczna
 ```bash
 netlify login
@@ -202,4 +197,4 @@ git push
 3. Dodaj `DATABASE_URL` na Netlify
 4. `git push`
 
-**Powiedz mi którą opcję wybrałeś, a pomogę Ci dalej!** 🚀
+

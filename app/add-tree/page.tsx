@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Camera, Loader2, ArrowLeft, Check } from 'lucide-react';
+import { MapPin, Camera, Loader2, ArrowLeft, Check, TreePine } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const DraggableMap = dynamic(() => import('@/components/DraggableMap'), { ssr: false });
 
 interface Lookups {
   users: any[];
@@ -39,17 +42,17 @@ export default function AddTreePage() {
   const [photoPreview, setPhotoPreview] = useState<string[]>([]);
 
   useEffect(() => {
-    // Fetch lookups
-    fetch('/api/lookups')
-      .then(res => res.json())
-      .then(data => {
-        console.log('Loaded lookups:', data);
-        setLookups(data);
-      })
-      .catch(err => {
-        console.error('Error loading lookups:', err);
-        alert('Błąd ładowania danych: ' + err.message);
-      });
+    Promise.all([
+      fetch('/api/lookups').then(r => r.json()),
+      fetch('/api/auth/me').then(r => r.ok ? r.json() : null).catch(() => null)
+    ]).then(([lookupsData, me]) => {
+      setLookups(lookupsData);
+      if (me?.id) {
+        setFormData(prev => ({ ...prev, worker_id: String(me.id) }));
+      }
+    }).catch(err => {
+      console.error('Error loading data:', err);
+    });
   }, []);
 
   const getGPSLocation = () => {
@@ -272,36 +275,35 @@ export default function AddTreePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 py-8">
+    <div className="min-h-screen py-8 pb-28 md:pb-8">
       <div className="container mx-auto px-4 max-w-2xl">
-        <Link href="/" className="inline-flex items-center text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400 mb-6">
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Powrót
+        <Link href="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-6 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Powrót
         </Link>
 
-        <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Dodaj Nowe Drzewo</h1>
+        <div className="glass rounded-3xl p-8 gradient-border-green">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+              <TreePine className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-black text-gradient-green">Dodaj Nowe Drzewo</h1>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* GPS Section */}
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-3xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="font-semibold text-gray-700 dark:text-gray-200">Lokalizacja GPS</label>
+            <div className="glass rounded-2xl p-4 border border-dashed border-white/15">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-xs font-black text-white/50 uppercase tracking-widest">Lokalizacja GPS</label>
                 <div className="flex gap-2">
                   {gpsLoading && (
-                    <button
-                      type="button"
-                      onClick={stopGPSTracking}
-                      className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700"
-                    >
+                    <button type="button" onClick={stopGPSTracking}
+                      className="flex items-center gap-2 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-xl text-xs hover:bg-red-500/10 transition-all">
                       Zatrzymaj
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={getGPSLocation}
-                    disabled={gpsLoading}
-                    className="flex items-center gap-2 bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50"
+                  <button type="button" onClick={getGPSLocation} disabled={gpsLoading}
+                    className="flex items-center gap-2 text-white px-3 py-1.5 rounded-xl text-xs font-bold disabled:opacity-50 transition-all hover:scale-105"
+                    style={{background:'linear-gradient(135deg,#16a34a,#22c55e)',boxShadow:'0 2px 12px rgba(34,197,94,0.3)'}}
                   >
                     {gpsLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -313,9 +315,9 @@ export default function AddTreePage() {
                 </div>
               </div>
               {formData.latitude !== 0 && (
-                <div className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                  <p>Szerokość: {formData.latitude.toFixed(7)}</p>
-                  <p>Długość: {formData.longitude.toFixed(7)}</p>
+                <div className="text-xs text-white/50 mt-3 space-y-1">
+                  <p>Szerokość: <span className="text-white/80">{formData.latitude.toFixed(7)}</span></p>
+                  <p>Długość: <span className="text-white/80">{formData.longitude.toFixed(7)}</span></p>
                   <p className={`font-semibold ${
                     formData.accuracy < 10 ? 'text-green-600 dark:text-green-400' :
                     formData.accuracy < 20 ? 'text-yellow-600 dark:text-yellow-400' :
@@ -331,31 +333,28 @@ export default function AddTreePage() {
                       📡 Trwa poprawa dokładności... Poczekaj na sygnał &lt;10m
                     </p>
                   )}
+                  <DraggableMap
+                    lat={formData.latitude}
+                    lng={formData.longitude}
+                    onMove={(lat, lng) => {
+                      stopGPSTracking();
+                      setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                    }}
+                  />
                 </div>
               )}
             </div>
 
             {/* Photos Section */}
             <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label className="block text-xs font-black text-white/50 uppercase tracking-widest mb-2">
                 Zdjęcia (opcjonalne)
               </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-3xl p-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  multiple
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                  id="photo-input"
-                />
-                <label
-                  htmlFor="photo-input"
-                  className="flex flex-col items-center justify-center cursor-pointer"
-                >
-                  <Camera className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Kliknij aby dodać zdjęcia</span>
+              <div className="glass rounded-2xl p-4 border border-dashed border-white/15">
+                <input type="file" accept="image/*" capture="environment" multiple onChange={handlePhotoChange} className="hidden" id="photo-input" />
+                <label htmlFor="photo-input" className="flex flex-col items-center justify-center cursor-pointer py-2">
+                  <Camera className="w-10 h-10 text-white/20 mb-2" />
+                  <span className="text-xs text-white/40">Kliknij aby dodać zdjęcia</span>
                 </label>
               </div>
               
@@ -438,25 +437,26 @@ export default function AddTreePage() {
 
             {/* Worker */}
             <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-2">Wykonawca</label>
+              <label className="block text-xs font-black text-white/50 uppercase tracking-widest mb-2">Wykonawca</label>
               <select
                 value={formData.worker_id}
                 onChange={(e) => setFormData({ ...formData, worker_id: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-full px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="input-modern"
               >
-                <option value="">Wybierz wykonawcę (opcjonalnie)</option>
+                <option value="">— brak wykonawcy —</option>
                 {lookups.users?.map(user => (
                   <option key={user.id} value={user.id}>
-                    {user.name}
+                    {user.name}{String(user.id) === formData.worker_id && formData.worker_id ? '' : ''}
                   </option>
                 )) || []}
               </select>
+              <p className="text-[11px] text-white/25 mt-1">Domyślnie: zalogowany użytkownik — możesz zmienić</p>
             </div>
 
             {/* Plant Date */}
             <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                Data posadzenia <span className="text-red-500">*</span>
+              <label className="block text-xs font-black text-white/50 uppercase tracking-widest mb-2">
+                Data <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ClientLayout from "@/components/ClientLayout";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -18,10 +19,6 @@ export const metadata: Metadata = {
   title: "Park M - System Ewidencji Drzew",
   description: "Aplikacja do zarządzania i monitorowania drzew",
   manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -44,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="pl" suppressHydrationWarning className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${geistMono.variable} antialiased mesh-bg min-h-screen text-white`}
       >
         <ThemeProvider>
           <ClientLayout>

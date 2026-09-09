@@ -8,9 +8,11 @@ import { Tree } from '@/lib/types';
 interface TreeMapProps {
   trees: Tree[];
   onTreeClick?: (tree: Tree) => void;
+  externalLayer?: 'standard' | 'satellite';
+  onLayerToggle?: () => void;
 }
 
-export default function TreeMap({ trees, onTreeClick }: TreeMapProps) {
+export default function TreeMap({ trees, onTreeClick, externalLayer, onLayerToggle }: TreeMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapLayer, setMapLayer] = useState<'standard' | 'satellite'>('satellite');
@@ -179,6 +181,15 @@ export default function TreeMap({ trees, onTreeClick }: TreeMapProps) {
     }
   }, [trees, onTreeClick]);
 
+  useEffect(() => {
+    if (!mapRef.current || !layersRef.current || externalLayer === undefined) return;
+    if (externalLayer !== mapLayer) {
+      mapRef.current.removeLayer(layersRef.current[mapLayer]);
+      mapRef.current.addLayer(layersRef.current[externalLayer]);
+      setMapLayer(externalLayer);
+    }
+  }, [externalLayer]);
+
   const toggleMapLayer = () => {
     if (!mapRef.current || !layersRef.current) return;
     
@@ -201,14 +212,16 @@ export default function TreeMap({ trees, onTreeClick }: TreeMapProps) {
         className="rounded-lg overflow-hidden"
       />
       
-      {/* Map Layer Toggle - poza kontenerem mapy */}
-      <button
-        onClick={toggleMapLayer}
-        className="absolute top-4 right-4 z-[9999] bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-xl hover:shadow-2xl transition-all text-sm font-semibold border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-400"
-        style={{ pointerEvents: 'auto' }}
-      >
-        {mapLayer === 'satellite' ? '🗺️ Mapa' : '🛰️ Satelita'}
-      </button>
+      {/* Wewnętrzny toggle - ukryty gdy rodzic kontroluje warstwę */}
+      {!onLayerToggle && (
+        <button
+          onClick={toggleMapLayer}
+          className="absolute top-4 right-4 z-[9999] bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-xl hover:shadow-2xl transition-all text-sm font-semibold border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-400"
+          style={{ pointerEvents: 'auto' }}
+        >
+          {mapLayer === 'satellite' ? '🗺️ Mapa' : '🛰️ Satelita'}
+        </button>
+      )}
     </div>
   );
 }

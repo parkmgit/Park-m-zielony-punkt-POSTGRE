@@ -2,22 +2,18 @@ import bcrypt from 'bcrypt';
 
 // PostgreSQL connection pool
 let dbClient: any = null;
+let isEnding = false;
 
-// Reset connection (useful for development when env changes)
 export async function resetDbClient() {
-  if (dbClient) {
-    await dbClient.end();
+  if (dbClient && !isEnding) {
+    isEnding = true;
+    try { await dbClient.end(); } catch {}
+    dbClient = null;
+    isEnding = false;
   }
-  dbClient = null;
-  console.log('🔄 Database client reset');
 }
 
 async function getDbClient() {
-  // Always reset in development to pick up env changes
-  if (process.env.NODE_ENV === 'development' && dbClient) {
-    await resetDbClient();
-  }
-  
   if (!dbClient) {
     console.log('🚀 Initializing PostgreSQL connection');
     const { Pool } = await import('pg');
@@ -27,9 +23,10 @@ async function getDbClient() {
     
     if (databaseUrl) {
       console.log('📊 Using DATABASE_URL connection string');
+      const sslDisabled = databaseUrl.includes('sslmode=disable') || databaseUrl.includes('sslmode=no-ssl');
       dbClient = new Pool({
         connectionString: databaseUrl,
-        ssl: { rejectUnauthorized: false },
+        ssl: sslDisabled ? false : { rejectUnauthorized: false },
         max: 20,
         idleTimeoutMillis: 120000,
         connectionTimeoutMillis: 120000,
@@ -191,6 +188,21 @@ export async function initDB() {
     `);
 
     // Photos table
+    await query(`
+      CREATE TABLE IF NOT EXISTS watering_reminders (
+        id SERIAL PRIMARY KEY,
+        tree_id INTEGER NOT NULL REFERENCES trees(id) ON DELETE CASCADE,
+        assigned_user_id INTEGER NOT NULL REFERENCES users(id),
+        source_action_id INTEGER REFERENCES tree_actions(id) ON DELETE SET NULL,
+        due_at TIMESTAMP NOT NULL,
+        remind_before_hours INTEGER NOT NULL DEFAULT 24,
+        status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'done', 'cancelled')),
+        created_by INTEGER NOT NULL REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     await query(`
       CREATE TABLE IF NOT EXISTS photos (
         id SERIAL PRIMARY KEY,

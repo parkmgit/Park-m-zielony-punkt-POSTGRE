@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, MapPin, Calendar, User, Building, X, Download, FileText, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Search, MapPin, Calendar, User, Building, X, Download, FileText, Edit, Trash2, TreePine } from 'lucide-react';
 import { Tree } from '@/lib/types';
 
 interface Project {
@@ -80,6 +80,8 @@ export default function TreesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterProject, setFilterProject] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [selectedTree, setSelectedTree] = useState<Tree | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [treePhotos, setTreePhotos] = useState<string[]>([]);
@@ -189,8 +191,10 @@ export default function TreesPage() {
     
     const matchesStatus = !filterStatus || tree.status === filterStatus;
     const matchesProject = !filterProject || tree.project_id?.toString() === filterProject;
+    const matchesDateFrom = !filterDateFrom || new Date(tree.plant_date) >= new Date(filterDateFrom);
+    const matchesDateTo = !filterDateTo || new Date(tree.plant_date) <= new Date(filterDateTo);
     
-    return matchesSearch && matchesStatus && matchesProject;
+    return matchesSearch && matchesStatus && matchesProject && matchesDateFrom && matchesDateTo;
   });
 
   // Get selected project stats
@@ -213,335 +217,158 @@ export default function TreesPage() {
     }
   };
 
-  const exportTreeToPDF = () => {
-    if (!selectedTree) return;
-    
-    const project = projects.find(p => p.id === selectedTree.project_id);
-    
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    const photoHTML = treePhotos.length > 0 
-      ? `<img src="${treePhotos[0]}" style="max-width: 100%; height: auto; margin-bottom: 20px;" />`
-      : '<div style="background: #f0f0f0; padding: 40px; text-align: center; margin-bottom: 20px;">Brak zdjęcia</div>';
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Raport Drzewa - ${selectedTree.tree_number || selectedTree.id}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { color: #22c55e; }
-          .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 10px; margin: 20px 0; }
-          .info-label { font-weight: bold; }
-          .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
-          @media print {
-            body { padding: 0; }
-            button { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Raport Drzewa</h1>
-        
-        ${photoHTML}
-        
-        <div class="section">
-          <h2>Informacje podstawowe</h2>
-          <div class="info-grid">
-            <div class="info-label">ID:</div><div>${selectedTree.id}</div>
-            <div class="info-label">Numer drzewa:</div><div>${selectedTree.tree_number || '-'}</div>
-            <div class="info-label">Gatunek:</div><div>${selectedTree.species_name || '-'}</div>
-            <div class="info-label">Status:</div><div>${selectedTree.status}</div>
-            <div class="info-label">Data posadzenia:</div><div>${new Date(selectedTree.plant_date).toLocaleDateString('pl-PL')}</div>
-            <div class="info-label">Wykonawca:</div><div>${selectedTree.worker_name || '-'}</div>
-          </div>
-        </div>
-        
-        <div class="section">
-          <h2>Projekt</h2>
-          <div class="info-grid">
-            <div class="info-label">Kod:</div><div>${selectedTree.site_code}</div>
-            <div class="info-label">Nazwa:</div><div>${selectedTree.site_name}</div>
-            <div class="info-label">Numer projektu:</div><div>${project?.project_number || '-'}</div>
-            <div class="info-label">Lokalizacja:</div><div>${project?.location || '-'}</div>
-            <div class="info-label">Klient:</div><div>${project?.client || '-'}</div>
-          </div>
-        </div>
-        
-        <div class="section">
-          <h2>Lokalizacja GPS</h2>
-          <div class="info-grid">
-            <div class="info-label">Szerokość:</div><div>${selectedTree.latitude.toFixed(6)}</div>
-            <div class="info-label">Długość:</div><div>${selectedTree.longitude.toFixed(6)}</div>
-            ${selectedTree.accuracy ? `<div class="info-label">Dokładność:</div><div>±${selectedTree.accuracy}m</div>` : ''}
-          </div>
-        </div>
-        
-        ${selectedTree.notes ? `
-        <div class="section">
-          <h2>Notatki</h2>
-          <p>${selectedTree.notes}</p>
-        </div>
-        ` : ''}
-        
-        ${treeActions.length > 0 ? `
-        <div class="section">
-          <h2>Historia akcji (${treeActions.length})</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-              <tr style="background: #e5e7eb; text-align: left;">
-                <th style="padding: 8px; border: 1px solid #d1d5db;">Data</th>
-                <th style="padding: 8px; border: 1px solid #d1d5db;">Typ akcji</th>
-                <th style="padding: 8px; border: 1px solid #d1d5db;">Wykonawca</th>
-                <th style="padding: 8px; border: 1px solid #d1d5db;">Notatki</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${treeActions.map(action => `
-                <tr>
-                  <td style="padding: 8px; border: 1px solid #d1d5db;">${new Date(action.performed_at).toLocaleDateString('pl-PL')}</td>
-                  <td style="padding: 8px; border: 1px solid #d1d5db;">${action.action_type}</td>
-                  <td style="padding: 8px; border: 1px solid #d1d5db;">${action.performer_name || '-'}</td>
-                  <td style="padding: 8px; border: 1px solid #d1d5db;">${action.notes || '-'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-        ` : ''}
-        
-        <div class="section">
-          <h2>Informacje systemowe</h2>
-          <div class="info-grid">
-            <div class="info-label">Dodane przez:</div><div>${selectedTree.creator_name || '-'}</div>
-            <div class="info-label">Data utworzenia:</div><div>${new Date(selectedTree.created_at).toLocaleString('pl-PL')}</div>
-          </div>
-        </div>
-        
-        <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer;">
-          Drukuj / Zapisz jako PDF
-        </button>
-      </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
+  const printHTML = (html: string) => {
+    let container = document.getElementById('print-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'print-container';
+      document.body.appendChild(container);
+    }
+    container.innerHTML = html;
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => { if (container) container.innerHTML = ''; }, 1000);
+    }, 300);
   };
 
-  const exportAllTreesToPDF = async () => {
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Raport Drzew</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { color: #22c55e; text-align: center; }
-          .summary { background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 20px 0; }
-          .tree-card { 
-            page-break-inside: avoid; 
-            border: 2px solid #e5e7eb; 
-            border-radius: 12px; 
-            padding: 15px; 
-            margin: 20px 0; 
-            background: white;
-          }
-          .tree-header { 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            margin-bottom: 15px;
-            border-bottom: 2px solid #22c55e;
-            padding-bottom: 10px;
-          }
-          .tree-photo { 
-            width: 120px; 
-            height: 120px; 
-            object-fit: cover; 
-            border-radius: 8px;
-            border: 2px solid #e5e7eb;
-          }
-          .tree-photo-placeholder {
-            width: 120px; 
-            height: 120px; 
-            background: #f3f4f6;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9ca3af;
-            font-size: 12px;
-          }
-          .tree-title { flex: 1; }
-          .tree-title h2 { margin: 0; color: #22c55e; font-size: 18px; }
-          .tree-title .id { color: #6b7280; font-size: 14px; }
-          .info-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 10px;
-          }
-          .info-item { 
-            display: flex; 
-            gap: 8px;
-            font-size: 13px;
-          }
-          .info-label { font-weight: bold; color: #374151; }
-          .info-value { color: #6b7280; }
-          .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-          }
-          .status-posadzone { background: #dcfce7; color: #166534; }
-          .status-podlewanie { background: #dbeafe; color: #1e40af; }
-          .status-utrzymanie { background: #dbeafe; color: #1e40af; }
-          .status-wymiana { background: #fef3c7; color: #92400e; }
-          .status-usuniete { background: #fee2e2; color: #991b1b; }
-          @media print {
-            body { padding: 10px; }
-            button { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Raport Drzew - ${filterProject ? projects.find(p => p.id.toString() === filterProject)?.name : 'Wszystkie projekty'}</h1>
-        
-        <div class="summary">
-          <strong>Podsumowanie:</strong><br/>
-          Liczba drzew: ${filteredTrees.length}<br/>
-          Data raportu: ${new Date().toLocaleDateString('pl-PL')}
-        </div>
-        
-        <div id="trees-container">
-          <p style="text-align: center; color: #6b7280;">Ładowanie drzew...</p>
-        </div>
-        
-        <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; display: block; margin: 20px auto;">
-          Drukuj / Zapisz jako PDF
-        </button>
-      </body>
-      </html>
+  const exportTreeToPDF = () => {
+    if (!selectedTree) return;
+    const project = projects.find(p => p.id === selectedTree.project_id);
+    const photoHTML = treePhotos.length > 0
+      ? `<img src="${treePhotos[0]}" style="max-width:100%;height:auto;margin-bottom:20px;border-radius:8px;" />`
+      : '<div style="background:#f0f0f0;padding:30px;text-align:center;margin-bottom:20px;border-radius:8px;color:#666;">Brak zdjęcia</div>';
+    const s = (v: string | undefined | null) => v || '-';
+    printHTML(`
+      <h1 style="color:#22c55e;margin-bottom:4px;">Raport Drzewa #${s(selectedTree.tree_number)}</h1>
+      <p style="color:#666;font-size:13px;">Wygenerowano: ${new Date().toLocaleString('pl-PL')}</p>
+      ${photoHTML}
+      <div style="margin:16px 0;padding:14px;background:#f9f9f9;border-radius:8px;">
+        <h2 style="margin:0 0 10px;">Informacje podstawowe</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <tr><td style="font-weight:bold;padding:4px 8px;width:160px;">Numer drzewa:</td><td style="padding:4px 8px;">${s(selectedTree.tree_number)}</td></tr>
+          <tr><td style="font-weight:bold;padding:4px 8px;">Gatunek:</td><td style="padding:4px 8px;">${s(selectedTree.species_name)}</td></tr>
+          <tr><td style="font-weight:bold;padding:4px 8px;">Status:</td><td style="padding:4px 8px;">${selectedTree.status}</td></tr>
+          <tr><td style="font-weight:bold;padding:4px 8px;">Data:</td><td style="padding:4px 8px;">${new Date(selectedTree.plant_date).toLocaleDateString('pl-PL')}</td></tr>
+          <tr><td style="font-weight:bold;padding:4px 8px;">Wykonawca:</td><td style="padding:4px 8px;">${s(selectedTree.worker_name)}</td></tr>
+          <tr><td style="font-weight:bold;padding:4px 8px;">Projekt:</td><td style="padding:4px 8px;">${s(selectedTree.site_code)} — ${s(selectedTree.site_name)}</td></tr>
+          <tr><td style="font-weight:bold;padding:4px 8px;">GPS:</td><td style="padding:4px 8px;">${selectedTree.latitude.toFixed(6)}, ${selectedTree.longitude.toFixed(6)}</td></tr>
+          ${selectedTree.notes ? `<tr><td style="font-weight:bold;padding:4px 8px;">Notatki:</td><td style="padding:4px 8px;">${selectedTree.notes}</td></tr>` : ''}
+        </table>
+      </div>
+      ${treeActions.length > 0 ? `
+      <div style="margin:16px 0;padding:14px;background:#f9f9f9;border-radius:8px;">
+        <h2 style="margin:0 0 10px;">Historia akcji (${treeActions.length})</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#e5e7eb;">
+            <th style="padding:6px 8px;border:1px solid #d1d5db;text-align:left;">Data</th>
+            <th style="padding:6px 8px;border:1px solid #d1d5db;text-align:left;">Typ akcji</th>
+            <th style="padding:6px 8px;border:1px solid #d1d5db;text-align:left;">Wykonawca</th>
+            <th style="padding:6px 8px;border:1px solid #d1d5db;text-align:left;">Notatki</th>
+          </tr></thead>
+          <tbody>
+            ${treeActions.map(a => `<tr>
+              <td style="padding:5px 8px;border:1px solid #d1d5db;">${new Date(a.performed_at).toLocaleDateString('pl-PL')}</td>
+              <td style="padding:5px 8px;border:1px solid #d1d5db;">${a.action_type}</td>
+              <td style="padding:5px 8px;border:1px solid #d1d5db;">${a.performer_name || '-'}</td>
+              <td style="padding:5px 8px;border:1px solid #d1d5db;">${a.notes || '-'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
     `);
-    
-    printWindow.document.close();
-    
-    // Load photos and generate tree cards
-    const treesContainer = printWindow.document.getElementById('trees-container');
-    if (!treesContainer) return;
-    
-    treesContainer.innerHTML = '';
-    
-    for (const tree of filteredTrees) {
-      const project = projects.find(p => p.id === tree.project_id);
-      
-      // Fetch photo and actions for this tree
-      let photoURL = '';
-      let actions: any[] = [];
-      try {
-        const [photosRes, actionsRes] = await Promise.all([
-          fetch(`/api/photos?entity_type=tree&entity_id=${tree.id}`),
-          fetch(`/api/trees/${tree.id}/actions`)
-        ]);
-        const photos = await photosRes.json();
-        actions = await actionsRes.json();
-        if (photos.length > 0) {
-          photoURL = photos[0].url;
-        }
-      } catch (error) {
-        console.error('Error fetching tree data:', error);
-      }
-      
-      const photoHTML = photoURL 
-        ? `<img src="${photoURL}" class="tree-photo" />`
-        : '<div class="tree-photo-placeholder">Brak zdjęcia</div>';
-      
-      const treeCard = `
-        <div class="tree-card">
-          <div class="tree-header">
-            ${photoHTML}
-            <div class="tree-title">
-              <h2>${tree.species_name || 'Nieznany gatunek'}</h2>
-              <div class="id">ID: ${tree.id} | ${tree.tree_number || 'Brak numeru'}</div>
-              <span class="status-badge status-${tree.status}">${tree.status}</span>
-            </div>
-          </div>
-          
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Projekt:</span>
-              <span class="info-value">${tree.site_code} - ${tree.site_name}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Numer projektu:</span>
-              <span class="info-value">${project?.project_number || '-'}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Lokalizacja:</span>
-              <span class="info-value">${project?.location || '-'}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Klient:</span>
-              <span class="info-value">${project?.client || '-'}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Data posadzenia:</span>
-              <span class="info-value">${new Date(tree.plant_date).toLocaleDateString('pl-PL')}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Wykonawca:</span>
-              <span class="info-value">${tree.worker_name || '-'}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">GPS:</span>
-              <span class="info-value">${tree.latitude.toFixed(6)}, ${tree.longitude.toFixed(6)}</span>
-            </div>
-            ${tree.notes ? `
-            <div class="info-item" style="grid-column: 1 / -1;">
-              <span class="info-label">Notatki:</span>
-              <span class="info-value">${tree.notes}</span>
-            </div>
-            ` : ''}
-          </div>
-          
-          ${actions.length > 0 ? `
-          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-            <strong style="color: #22c55e;">Historia akcji (${actions.length}):</strong>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px;">
-              <thead>
-                <tr style="background: #f3f4f6;">
-                  <th style="padding: 6px; border: 1px solid #d1d5db; text-align: left;">Data</th>
-                  <th style="padding: 6px; border: 1px solid #d1d5db; text-align: left;">Typ akcji</th>
-                  <th style="padding: 6px; border: 1px solid #d1d5db; text-align: left;">Wykonawca</th>
-                  <th style="padding: 6px; border: 1px solid #d1d5db; text-align: left;">Notatki</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${actions.map(action => `
-                  <tr>
-                    <td style="padding: 6px; border: 1px solid #d1d5db;">${new Date(action.performed_at).toLocaleDateString('pl-PL')}</td>
-                    <td style="padding: 6px; border: 1px solid #d1d5db;">${action.action_type}</td>
-                    <td style="padding: 6px; border: 1px solid #d1d5db;">${action.performer_name || '-'}</td>
-                    <td style="padding: 6px; border: 1px solid #d1d5db;">${action.notes || '-'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          ` : ''}
+  };
+
+  const exportAllTreesToPDF = () => {
+    const projectName = filterProject
+      ? projects.find(p => p.id.toString() === filterProject)?.name || 'Projekt'
+      : 'Wszystkie projekty';
+
+    const statusColors: Record<string, string> = {
+      posadzone: 'background:#d1fae5;color:#065f46;',
+      utrzymanie: 'background:#dbeafe;color:#1e40af;',
+      wymiana: 'background:#fef3c7;color:#92400e;',
+      usuniete: 'background:#fee2e2;color:#991b1b;',
+    };
+
+    const rows = filteredTrees.map((tree, i) => {
+      const sc = statusColors[tree.status] || 'background:#f3f4f6;color:#374151;';
+      const bg = i % 2 === 0 ? '#ffffff' : '#f9fafb';
+      return `
+      <tr style="background:${bg};">
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#111;">${tree.tree_number || '—'}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#374151;">${tree.species_name || '—'}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#374151;font-size:11px;">${tree.site_code}<br/><span style="color:#6b7280;">${tree.site_name}</span></td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#374151;white-space:nowrap;">${new Date(tree.plant_date).toLocaleDateString('pl-PL')}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#374151;">${tree.worker_name || '—'}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;"><span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;${sc}">${tree.status}</span></td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:10px;white-space:nowrap;">${tree.latitude.toFixed(5)}<br/>${tree.longitude.toFixed(5)}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:11px;">${tree.notes || '—'}</td>
+      </tr>`;
+    }).join('');
+
+    const now = new Date();
+    printHTML(`
+      <style>
+        @page { margin: 15mm 12mm; }
+        * { box-sizing: border-box; }
+      </style>
+
+      <!-- NAGŁÓWEK -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:3px solid #22c55e;margin-bottom:20px;">
+        <div>
+          <div style="font-size:22px;font-weight:900;color:#22c55e;letter-spacing:-0.5px;">🌳 Zielony Punkt</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">System Ewidencji Drzew — Park M</div>
         </div>
-      `;
-      
-      treesContainer.innerHTML += treeCard;
-    }
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:700;color:#111;">Raport Drzew</div>
+          <div style="font-size:11px;color:#6b7280;">${now.toLocaleDateString('pl-PL', {day:'2-digit',month:'long',year:'numeric'})}</div>
+          <div style="font-size:11px;color:#6b7280;">${now.toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>
+
+      <!-- PODSUMOWANIE -->
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;">
+          <div style="font-size:11px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Projekt</div>
+          <div style="font-size:13px;font-weight:700;color:#111;margin-top:2px;">${projectName}</div>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 18px;text-align:center;">
+          <div style="font-size:11px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Łącznie drzew</div>
+          <div style="font-size:24px;font-weight:900;color:#22c55e;">${filteredTrees.length}</div>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 18px;text-align:center;">
+          <div style="font-size:11px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Posadzone</div>
+          <div style="font-size:24px;font-weight:900;color:#22c55e;">${filteredTrees.filter(t=>t.status==='posadzone').length}</div>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 18px;text-align:center;">
+          <div style="font-size:11px;color:#ea580c;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Utrzymanie</div>
+          <div style="font-size:24px;font-weight:900;color:#ea580c;">${filteredTrees.filter(t=>t.status==='utrzymanie').length}</div>
+        </div>
+      </div>
+
+      <!-- TABELA -->
+      <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Arial,sans-serif;">
+        <thead>
+          <tr style="background:#1a2e1a;">
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;white-space:nowrap;">Nr drzewa</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;">Gatunek</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;">Projekt</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;white-space:nowrap;">Data</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;">Wykonawca</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;">Status</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;">GPS</th>
+            <th style="padding:9px 10px;text-align:left;color:#4ade80;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;">Notatki</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <!-- STOPKA -->
+      <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;">
+        <span>Zielony Punkt — System Ewidencji Drzew</span>
+        <span>Raport wygenerowany: ${now.toLocaleString('pl-PL')}</span>
+      </div>
+    `);
   };
 
   const exportToExcel = () => {
@@ -622,34 +449,38 @@ export default function TreesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 py-8">
+    <div className="min-h-screen py-8 pb-28 md:pb-8">
       <div className="container mx-auto px-4">
-        <Link href="/" className="inline-flex items-center text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400 mb-6">
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Powrót
+        <Link href="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-6 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Powrót
         </Link>
 
-        <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Lista Drzew</h1>
+        <div className="glass rounded-3xl p-6 md:p-8 gradient-border-green">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                <TreePine className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-2xl font-black text-gradient-green">Lista Drzew</h1>
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={exportAllTreesToPDF}
-                className="bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 flex items-center gap-2"
+                className="glass rounded-2xl text-red-400 border border-red-500/20 px-4 py-2 hover:bg-red-500/10 flex items-center gap-2 text-sm font-medium transition-all"
               >
                 <FileText className="w-4 h-4" />
                 Eksportuj do PDF
               </button>
               <button
                 onClick={exportToExcel}
-                className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 flex items-center gap-2"
+                className="glass rounded-2xl text-blue-400 border border-blue-500/20 px-4 py-2 hover:bg-blue-500/10 flex items-center gap-2 text-sm font-medium transition-all"
               >
                 <Download className="w-4 h-4" />
                 Excel
               </button>
               <Link
                 href="/add-tree"
-                className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700"
+                className="font-bold text-sm text-white px-4 py-2 rounded-2xl hover:scale-105 transition-all" style={{background:'linear-gradient(135deg,#16a34a,#22c55e)',boxShadow:'0 4px 12px rgba(34,197,94,0.3)'}}
               >
                 + Dodaj Drzewo
               </Link>
@@ -657,11 +488,11 @@ export default function TreesPage() {
           </div>
 
           {/* Filters */}
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <div className="grid md:grid-cols-3 gap-4 mb-3">
             <select
               value={filterProject}
               onChange={(e) => setFilterProject(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent font-semibold"
+              className="input-modern"
             >
               <option value="">📁 Wszystkie projekty</option>
               {projects.map(project => (
@@ -677,13 +508,13 @@ export default function TreesPage() {
                 placeholder="Szukaj po gatunku..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="input-modern pl-10"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="input-modern"
             >
               <option value="">Wszystkie statusy</option>
               <option value="posadzone">Posadzone</option>
@@ -693,32 +524,36 @@ export default function TreesPage() {
             </select>
           </div>
 
+          {/* Date range filter */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-[10px] font-black text-white/30 uppercase tracking-widest mb-1.5">📅 Data od</label>
+              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="input-modern" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-white/30 uppercase tracking-widest mb-1.5">📅 Data do</label>
+              <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="input-modern" />
+            </div>
+          </div>
+
           {/* Stats */}
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-700 dark:to-gray-600 rounded-3xl p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-              {filterProject ? `Statystyki projektu: ${projects.find(p => p.id.toString() === filterProject)?.name}` : 'Statystyki wszystkich projektów'}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Wszystkie</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">{projectStats.total}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Posadzone</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{projectStats.posadzone}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Utrzymanie</p>
-                <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{projectStats.utrzymanie}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Wymiana</p>
-                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{projectStats.wymiana}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Usunięte</p>
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">{projectStats.usuniete}</p>
-              </div>
+          <div className="glass rounded-2xl p-5 mb-6">
+            <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">
+              {filterProject ? `Projekt: ${projects.find(p => p.id.toString() === filterProject)?.name}` : 'Statystyki wszystkich projektów'}
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {[
+                { label:'Wszystkie', val: projectStats.total,     color:'text-[#4ade80]',  from:'#16a34a',to:'#22c55e' },
+                { label:'Posadzone', val: projectStats.posadzone, color:'text-cyan-400',   from:'#0e7490',to:'#06b6d4' },
+                { label:'Utrzym.',   val: projectStats.utrzymanie,color:'text-yellow-400', from:'#a16207',to:'#eab308' },
+                { label:'Wymiana',   val: projectStats.wymiana,   color:'text-violet-400', from:'#6d28d9',to:'#a78bfa' },
+                { label:'Usunięte', val: projectStats.usuniete,  color:'text-red-400',    from:'#b91c1c',to:'#ef4444' },
+              ].map(({ label, val, color, from, to }) => (
+                <div key={label} className="text-center rounded-xl py-3 px-1" style={{background:`linear-gradient(135deg,${from}22,${to}22)`,border:`1px solid ${to}30`}}>
+                  <p className={`text-xl font-black ${color}`}>{val}</p>
+                  <p className="text-[9px] text-white/30 font-semibold mt-0.5">{label}</p>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -730,65 +565,33 @@ export default function TreesPage() {
               </div>
             ) : (
               filteredTrees.map((tree) => (
-                <div key={tree.id} className="border border-gray-200 dark:border-gray-700 rounded-3xl overflow-hidden">
-                  <button
-                    onClick={() => openTreeDrawer(tree)}
-                    className="w-full text-left p-4 hover:shadow-md hover:border-green-500 dark:hover:border-green-500 transition-all"
-                  >
+                <div key={tree.id} className="glass rounded-2xl overflow-hidden hover:-translate-y-0.5 transition-all">
+                  <button onClick={() => openTreeDrawer(tree)} className="w-full text-left p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white">
-                          {tree.tree_number && <span className="text-green-600 dark:text-green-400 mr-2">{tree.tree_number}</span>}
+                        <h3 className="font-bold text-white">
+                          {tree.tree_number && <span className="text-[#4ade80] mr-2">{tree.tree_number}</span>}
                           {tree.species_name || 'Nieznany gatunek'}
                         </h3>
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${getStatusColor(tree.status)}`}>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold mt-1 ${getStatusColor(tree.status)}`}>
                           {tree.status}
                         </span>
                       </div>
-                      <div className="text-right text-sm text-gray-500 dark:text-gray-400">
-                        ID: {tree.id}
-                      </div>
+                      <span className="text-[10px] text-white/20">#{tree.id}</span>
                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300 mt-3">
-                      <div className="flex items-center gap-2">
-                        <Building className="w-4 h-4" />
-                        <span>{tree.site_code} - {tree.site_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{new Date(tree.plant_date).toLocaleDateString('pl-PL')}</span>
-                      </div>
-                      {tree.worker_name && (
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          <span>{tree.worker_name}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        <span>{tree.latitude.toFixed(6)}, {tree.longitude.toFixed(6)}</span>
-                      </div>
+                    <div className="grid md:grid-cols-2 gap-1.5 text-xs text-white/40 mt-2">
+                      <div className="flex items-center gap-1.5"><Building className="w-3 h-3" /><span>{tree.site_code} - {tree.site_name}</span></div>
+                      <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /><span>{new Date(tree.plant_date).toLocaleDateString('pl-PL')}</span></div>
+                      {tree.worker_name && <div className="flex items-center gap-1.5"><User className="w-3 h-3" /><span>{tree.worker_name}</span></div>}
+                      <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /><span>{tree.latitude.toFixed(5)}, {tree.longitude.toFixed(5)}</span></div>
                     </div>
-
-                    {tree.notes && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
-                        {tree.notes}
-                      </p>
-                    )}
+                    {tree.notes && <p className="text-xs text-white/30 mt-2 italic">{tree.notes}</p>}
                   </button>
-                  
-                  {/* Actions toggle button */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExpandedTreeId(expandedTreeId === tree.id ? null : tree.id);
-                    }}
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between text-sm"
+                    onClick={(e) => { e.stopPropagation(); setExpandedTreeId(expandedTreeId === tree.id ? null : tree.id); }}
+                    className="w-full px-4 py-2 border-t border-white/5 hover:bg-white/5 transition-colors flex items-center justify-between text-xs text-white/30"
                   >
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {expandedTreeId === tree.id ? 'Ukryj akcje' : 'Pokaż akcje'}
-                    </span>
+                    <span>{expandedTreeId === tree.id ? 'Ukryj akcje' : 'Pokaż akcje'}</span>
                     <svg 
                       className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${expandedTreeId === tree.id ? 'rotate-180' : ''}`}
                       fill="none" 

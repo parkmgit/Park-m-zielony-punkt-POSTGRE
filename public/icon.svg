@@ -1,33 +1,25 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <!-- Background -->
-  <rect width="512" height="512" fill="#0f172a" rx="80"/>
-  
-  <!-- Tree icon -->
-  <g transform="translate(256, 256)">
-    <!-- Trunk -->
-    <rect x="-20" y="80" width="40" height="100" fill="#8b4513" rx="5"/>
-    
-    <!-- Leaves - bottom layer -->
-    <circle cx="0" cy="60" r="80" fill="#22c55e"/>
-    <circle cx="-50" cy="40" r="60" fill="#22c55e"/>
-    <circle cx="50" cy="40" r="60" fill="#22c55e"/>
-    
-    <!-- Leaves - middle layer -->
-    <circle cx="0" cy="0" r="70" fill="#10b981"/>
-    <circle cx="-40" cy="-20" r="50" fill="#10b981"/>
-    <circle cx="40" cy="-20" r="50" fill="#10b981"/>
-    
-    <!-- Leaves - top layer -->
-    <circle cx="0" cy="-50" r="60" fill="#22c55e"/>
-    <circle cx="-30" cy="-60" r="40" fill="#22c55e"/>
-    <circle cx="30" cy="-60" r="40" fill="#22c55e"/>
-    
-    <!-- Highlight -->
-    <circle cx="-20" cy="-40" r="15" fill="#4ade80" opacity="0.6"/>
-  </g>
-  
-  <!-- Text -->
-  <text x="256" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#22c55e">
-    Park M
-  </text>
+  <rect width="512" height="512" fill="#0f172a" rx="96"/>
+
+  <!-- Trunk -->
+  <rect x="220" y="390" width="72" height="80" fill="#7c4a1e" rx="8"/>
+
+  <!-- Bottom layer -->
+  <polygon points="256,180 110,400 402,400" fill="#15803d"/>
+  <!-- Bottom layer highlight -->
+  <polygon points="256,180 110,400 256,400" fill="#16a34a"/>
+
+  <!-- Middle layer -->
+  <polygon points="256,100 130,310 382,310" fill="#16a34a"/>
+  <!-- Middle highlight -->
+  <polygon points="256,100 130,310 256,310" fill="#22c55e"/>
+
+  <!-- Top layer -->
+  <polygon points="256,30 166,210 346,210" fill="#22c55e"/>
+  <!-- Top highlight -->
+  <polygon points="256,30 166,210 256,210" fill="#4ade80"/>
+
+  <!-- Star on top -->
+  <circle cx="256" cy="30" r="22" fill="#fbbf24"/>
 </svg>
