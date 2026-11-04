@@ -5,6 +5,40 @@ export interface User {
   email?: string;
   active: number;
   created_at: string;
+  last_seen_at?: string;
+}
+
+export interface Shrub {
+  id: number;
+  site_id?: number;
+  species_id?: number;
+  quantity: number;
+  plant_date: string;
+  worker_id?: number;
+  status?: string;
+  notes?: string;
+  active: boolean;
+  created_by?: number;
+  created_at: string;
+  species_name?: string;
+  site_name?: string;
+  site_code?: string;
+  project_id?: number;
+  project_name?: string;
+  project_number?: string;
+  worker_name?: string;
+}
+
+export interface ShrubAction {
+  id: number;
+  shrub_id?: number;
+  action_type: string;
+  quantity_affected?: number;
+  performed_at: string;
+  performer_id?: number;
+  notes?: string;
+  created_at: string;
+  performer_name?: string;
 }
 
 export interface Project {

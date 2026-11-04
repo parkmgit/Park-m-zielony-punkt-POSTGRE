@@ -9,7 +9,9 @@ export async function GET() {
     let species = [];
 
     try {
-      users = await query('SELECT * FROM users WHERE active = true ORDER BY name');
+      users = await query(
+        'SELECT id, name, role, email, active FROM users WHERE active = true ORDER BY name'
+      );
     } catch (e) {
       console.error('Error loading users:', e);
     }

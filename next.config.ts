@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true, // Tymczasowo wyłącz ESLint podczas buildu
   },
-  typescript: {
-    ignoreBuildErrors: true, // Tymczasowo wyłącz TypeScript errors
-  },
 };
 
 const pwaConfig = withPWA({
@@ -27,6 +24,10 @@ const pwaConfig = withPWA({
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
       },
+    },
+    {
+      urlPattern: /\/api\/.*/,
+      handler: "NetworkOnly",
     },
     {
       urlPattern: /^https?.*/,
@@ -49,18 +50,6 @@ const pwaConfig = withPWA({
           maxEntries: 100,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
-      },
-    },
-    {
-      urlPattern: /\/api\/.*/,
-      handler: "NetworkFirst",
-      options: {
-        cacheName: "api-cache",
-        expiration: {
-          maxEntries: 50,
-          maxAgeSeconds: 5 * 60, // 5 minutes
-        },
-        networkTimeoutSeconds: 10,
       },
     },
   ],

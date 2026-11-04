@@ -2,4 +2,4 @@
 console.log('🚀 Using PostgreSQL auth');
 
 export { login, register, logout, getCurrentUser } from './auth';
-export type { RegisterData } from './auth';
+export type { RegisterData, User, UserRole } from './auth';

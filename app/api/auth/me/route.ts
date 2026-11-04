@@ -4,16 +4,6 @@ import { query } from '@/lib/db-config';
 
 export const runtime = 'nodejs';
 
-// Jednorazowa migracja — bezpieczna dzięki IF NOT EXISTS
-let migrationDone = false;
-async function ensureLastSeenColumn() {
-  if (migrationDone) return;
-  try {
-    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP`);
-    migrationDone = true;
-  } catch {}
-}
-
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -25,8 +15,7 @@ export async function GET() {
       );
     }
 
-    // Aktualizuj ostatnią aktywność (każde wejście do aplikacji)
-    await ensureLastSeenColumn();
+    // Aktualizuj ostatnią aktywność (kolumna jest częścią bazowego schematu).
     query(`UPDATE users SET last_seen_at = NOW() WHERE id = $1`, [user.id]).catch(() => {});
 
     return NextResponse.json({

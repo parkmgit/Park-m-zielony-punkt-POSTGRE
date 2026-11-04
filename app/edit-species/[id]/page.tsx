@@ -74,13 +74,13 @@ export default function EditSpeciesPage() {
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/species`, {
+      const response = await fetch(`/api/species/${speciesId}`, {
         method: "PUT",
+        cache: "no-store",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: speciesId,
           name: formData.name.trim(),
           scientific_name: formData.scientific_name.trim(),
         }),

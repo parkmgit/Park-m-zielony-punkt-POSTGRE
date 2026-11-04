@@ -9,8 +9,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    role: 'pracownik' as 'admin' | 'brygadzista' | 'pracownik'
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,8 +34,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!formData.password || formData.password.length < 6) {
-      setError('Hasło musi mieć minimum 6 znaków');
+    if (!formData.password || formData.password.length < 8) {
+      setError('Hasło musi mieć minimum 8 znaków');
       setLoading(false);
       return;
     }
@@ -67,7 +66,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -150,6 +149,9 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-gray-300 dark:border-[#22c55e]/50 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:border-green-500 dark:focus:border-[#22c55e] transition-colors"
                   disabled={loading}
+                  minLength={8}
+                  maxLength={72}
+                  autoComplete="new-password"
                   required
                 />
                 <button
@@ -166,27 +168,8 @@ export default function RegisterPage() {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Minimum 6 znaków
+                Minimum 8 znaków
               </p>
-            </div>
-
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Stanowisko
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-[#22c55e]/50 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:border-green-500 dark:focus:border-[#22c55e] transition-colors"
-                disabled={loading}
-                required
-              >
-                <option value="pracownik">Pracownik</option>
-                <option value="brygadzista">Brygadzista</option>
-                <option value="admin">Administrator</option>
-              </select>
             </div>
 
             {error && (

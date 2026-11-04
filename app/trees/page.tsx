@@ -144,7 +144,7 @@ export default function TreesPage() {
   const fetchData = async () => {
     try {
       const [treesRes, projectsRes] = await Promise.all([
-        fetch('/api/trees'),
+        fetch('/api/trees', { cache: 'no-store' }),
         fetch('/api/projects')
       ]);
       const treesData = await treesRes.json();

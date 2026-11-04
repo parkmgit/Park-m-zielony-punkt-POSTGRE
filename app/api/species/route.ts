@@ -16,7 +16,6 @@ export async function GET() {
     return NextResponse.json([], { status: 500 });
   }
 }
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -80,37 +79,5 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Error deleting species:', error);
     return NextResponse.json({ error: 'Failed to delete species' }, { status: 500 });
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { id, name, scientific_name } = body;
-
-    if (!id || !name) {
-      return NextResponse.json(
-        { error: 'ID i nazwa gatunku są wymagane' },
-        { status: 400 }
-      );
-    }
-
-    await query(
-      'UPDATE species SET name = ?, scientific_name = ? WHERE id = ?',
-      [name, scientific_name || null, id]
-    );
-
-    const species = await queryOne('SELECT * FROM species WHERE id = ?', [id]);
-
-    return NextResponse.json(species);
-  } catch (error: any) {
-    console.error('Error updating species:', error);
-    if (error.message?.includes('duplicate key') || error.message?.includes('unique constraint') || error.message?.includes('UNIQUE constraint')) {
-      return NextResponse.json(
-        { error: 'Gatunek o tej nazwie już istnieje' },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json({ error: 'Failed to update species', details: error.message }, { status: 500 });
   }
 }

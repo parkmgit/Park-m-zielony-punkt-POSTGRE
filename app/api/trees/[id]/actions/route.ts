@@ -5,9 +5,10 @@ import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const actions = await query(`
       SELECT 
         ta.*,
@@ -16,7 +17,7 @@ export async function GET(
       LEFT JOIN users u ON ta.performed_by = u.id
       WHERE ta.tree_id = ?
       ORDER BY ta.performed_at DESC
-    `, [params.id]);
+    `, [id]);
 
     return NextResponse.json(actions);
   } catch (error) {
@@ -30,9 +31,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
@@ -47,13 +49,13 @@ export async function POST(
 
     await query(
       'INSERT INTO tree_actions (tree_id, action_type, notes, performed_by) VALUES (?, ?, ?, ?)',
-      [params.id, body.action_type, body.notes || null, performedBy]
+      [id, body.action_type, body.notes || null, performedBy]
     );
 
     // Get the newly created action
     const newAction = await query(
       'SELECT * FROM tree_actions WHERE tree_id = ? ORDER BY id DESC LIMIT 1',
-      [params.id]
+      [id]
     );
 
     if (body.action_type === 'podlewanie' && body.next_watering_at) {
@@ -63,7 +65,7 @@ export async function POST(
         `UPDATE watering_reminders
          SET status = 'done', updated_at = CURRENT_TIMESTAMP
          WHERE tree_id = ? AND assigned_user_id = ? AND status = 'active' AND due_at <= CURRENT_TIMESTAMP`,
-        [params.id, performedBy]
+        [id, performedBy]
       );
 
       await query(
@@ -71,7 +73,7 @@ export async function POST(
           tree_id, assigned_user_id, source_action_id, due_at, remind_before_hours, created_by
         ) VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          params.id,
+          id,
           performedBy,
           newAction[0].id,
           body.next_watering_at,
@@ -82,7 +84,7 @@ export async function POST(
     }
 
     // Update tree's updated_at timestamp
-    await query('UPDATE trees SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [params.id]);
+    await query('UPDATE trees SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
 
     return NextResponse.json({
       id: newAction[0].id,

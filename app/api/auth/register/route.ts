@@ -4,10 +4,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const result = await register(body);
-    if (result.error) {
+    if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
-    return NextResponse.json(result);
+    return NextResponse.json(result.user, { status: 201 });
   } catch (error) {
     console.error('Register API error:', error);
     return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });

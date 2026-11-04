@@ -56,7 +56,7 @@ export default function TreeDetailPage() {
   const fetchTreeData = async () => {
     try {
       const [treeRes, actionsRes, photosRes] = await Promise.all([
-        fetch(`/api/trees/${treeId}`),
+        fetch(`/api/trees/${treeId}`, { cache: 'no-store' }),
         fetch(`/api/trees/${treeId}/actions`),
         fetch(`/api/photos?entity_type=tree&entity_id=${treeId}`)
       ]);

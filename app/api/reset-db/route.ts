@@ -1,26 +1,44 @@
 import { NextResponse } from 'next/server';
+import { requireRole } from '@/lib/api-auth';
 import { query } from '@/lib/db-config';
 
-export async function GET() {
-  try {
-    // Drop all tables in correct order (respecting foreign keys)
-    await query('DROP TABLE IF EXISTS photos');
-    await query('DROP TABLE IF EXISTS tree_actions');
-    await query('DROP TABLE IF EXISTS trees');
-    await query('DROP TABLE IF EXISTS sync_queue');
-    await query('DROP TABLE IF EXISTS species');
-    await query('DROP TABLE IF EXISTS sites');
-    await query('DROP TABLE IF EXISTS projects');
-    await query('DROP TABLE IF EXISTS users');
+export const runtime = 'nodejs';
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Baza danych została wyczyszczona. Teraz uruchom /api/init aby utworzyć nową bazę.' 
+export async function POST() {
+  const auth = await requireRole('admin');
+  if (!auth.ok) return auth.response;
+
+  if (process.env.ALLOW_DATABASE_RESET !== 'true') {
+    return NextResponse.json(
+      { error: 'Reset bazy danych jest wyłączony' },
+      { status: 403 }
+    );
+  }
+
+  try {
+    await query(`
+      DROP TABLE IF EXISTS
+        photos,
+        watering_reminders,
+        shrub_actions,
+        tree_actions,
+        shrubs,
+        trees,
+        sync_queue,
+        species,
+        sites,
+        projects,
+        users
+    `);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Baza danych została wyczyszczona',
     });
   } catch (error) {
     console.error('Database reset error:', error);
     return NextResponse.json(
-      { success: false, error: 'Błąd czyszczenia bazy danych' },
+      { success: false, error: 'Nie udało się wyczyścić bazy danych' },
       { status: 500 }
     );
   }

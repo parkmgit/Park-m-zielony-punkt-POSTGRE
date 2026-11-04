@@ -1,63 +1,86 @@
-import { cookies } from 'next/headers';
 import bcrypt from 'bcrypt';
-import { query, queryOne } from './db';
+import { cookies } from 'next/headers';
+import { queryOne } from './db';
+import { hashPassword, validatePassword } from './password';
+import {
+  SESSION_COOKIE_NAME,
+  SESSION_DURATION_SECONDS,
+  signSession,
+  verifySession,
+} from './session';
+
+export type UserRole = 'admin' | 'brygadzista' | 'pracownik';
 
 export interface User {
   id: number;
   name: string;
-  role: 'admin' | 'brygadzista' | 'pracownik';
+  role: UserRole;
   email: string | null;
-  active: number;
-  password_hash?: string;
+  active: boolean;
+  created_at?: string;
+  last_seen_at?: string | null;
+  password_hash?: string | null;
 }
 
-const SESSION_COOKIE_NAME = 'park-m-session';
-const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
+export type PublicUser = Omit<User, 'password_hash'>;
 
-export async function login(email: string, password: string): Promise<User | { error: string }> {
+type AuthOperationResult =
+  | { ok: true; user: PublicUser }
+  | { ok: false; error: string };
+
+const SESSION_DURATION_MS = SESSION_DURATION_SECONDS * 1000;
+
+async function setUserSession(user: User) {
+  const token = await signSession({
+    userId: user.id,
+    email: user.email,
+    expiresAt: Date.now() + SESSION_DURATION_MS,
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: SESSION_DURATION_SECONDS,
+    path: '/',
+  });
+}
+
+function withoutPassword(user: User): PublicUser {
+  const { password_hash: _passwordHash, ...publicUser } = user;
+  return publicUser;
+}
+
+export async function login(
+  email: unknown,
+  password: unknown
+): Promise<AuthOperationResult> {
   try {
-    // Normalize email
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return { ok: false, error: 'Email i hasło są wymagane' };
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
-    
-    const user = await queryOne<User>('SELECT * FROM users WHERE email = ? AND active = true', [normalizedEmail]);
-    
-    if (!user) {
-      return { error: 'Nieprawidłowy email lub hasło' };
+    const user = await queryOne<User>(
+      'SELECT * FROM users WHERE email = ? AND active = true',
+      [normalizedEmail]
+    );
+
+    if (!user?.password_hash) {
+      return { ok: false, error: 'Nieprawidłowy email lub hasło' };
     }
 
-    // Check if user has password set
-    if (!user.password_hash) {
-      return { error: 'Konto nie ma ustawionego hasła. Skontaktuj się z administratorem.' };
-    }
-
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-      return { error: 'Nieprawidłowy email lub hasło' };
+      return { ok: false, error: 'Nieprawidłowy email lub hasło' };
     }
 
-    // Create session
-    const sessionData = {
-      userId: user.id,
-      email: user.email,
-      expiresAt: Date.now() + SESSION_DURATION
-    };
-
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION / 1000,
-      path: '/'
-    });
-
-    // Remove password_hash from returned user
-    const { password_hash, ...userWithoutPassword } = user;
-    return userWithoutPassword as User;
+    await setUserSession(user);
+    return { ok: true, user: withoutPassword(user) };
   } catch (error) {
     console.error('Login error:', error);
-    return { error: 'Błąd logowania' };
+    return { ok: false, error: 'Błąd logowania' };
   }
 }
 
@@ -70,22 +93,16 @@ export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
-    
-    if (!sessionCookie?.value) {
-      return null;
-    }
 
-    const sessionData = JSON.parse(sessionCookie.value);
-    
-    // Check if session expired
-    if (sessionData.expiresAt < Date.now()) {
-      await logout();
-      return null;
-    }
+    if (!sessionCookie?.value) return null;
 
-    const user = await queryOne<User>('SELECT * FROM users WHERE id = ? AND active = true', [sessionData.userId]);
-    
-    return user;
+    const sessionData = await verifySession(sessionCookie.value);
+    if (!sessionData || sessionData.expiresAt < Date.now()) return null;
+
+    return queryOne<User>(
+      'SELECT * FROM users WHERE id = ? AND active = true',
+      [sessionData.userId]
+    );
   } catch (error) {
     console.error('Get current user error:', error);
     return null;
@@ -93,15 +110,12 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export async function isAuthenticated(): Promise<boolean> {
-  const user = await getCurrentUser();
-  return user !== null;
+  return (await getCurrentUser()) !== null;
 }
 
 export async function requireAuth(): Promise<User> {
   const user = await getCurrentUser();
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
+  if (!user) throw new Error('Unauthorized');
   return user;
 }
 
@@ -109,79 +123,57 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'brygadzista' | 'pracownik';
 }
 
-export async function register(data: RegisterData): Promise<User | { error: string }> {
+export async function register(data: RegisterData): Promise<AuthOperationResult> {
   try {
-    // Normalize inputs
+    if (
+      typeof data?.email !== 'string' ||
+      typeof data?.name !== 'string'
+    ) {
+      return { ok: false, error: 'Imię, email i hasło są wymagane' };
+    }
+
     const normalizedEmail = data.email.trim().toLowerCase();
     const normalizedName = data.name.trim();
-    
-    // Validate email domain
+
     if (!normalizedEmail.endsWith('@park-m.pl')) {
-      return { error: 'Email musi kończyć się na @park-m.pl' };
+      return { ok: false, error: 'Email musi kończyć się na @park-m.pl' };
     }
 
-    // Check if email already exists
-    const existingUser = await queryOne('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
+    const existingUser = await queryOne(
+      'SELECT id FROM users WHERE email = ?',
+      [normalizedEmail]
+    );
     if (existingUser) {
-      return { error: 'Użytkownik z tym adresem email już istnieje' };
+      return { ok: false, error: 'Użytkownik z tym adresem email już istnieje' };
     }
 
-    // Validate name
-    if (!normalizedName || normalizedName.length < 3) {
-      return { error: 'Imię i nazwisko musi mieć minimum 3 znaki' };
+    if (normalizedName.length < 3) {
+      return { ok: false, error: 'Imię i nazwisko musi mieć minimum 3 znaki' };
     }
 
-    // Validate password
-    if (!data.password || data.password.length < 6) {
-      return { error: 'Hasło musi mieć minimum 6 znaków' };
-    }
+    const passwordError = validatePassword(data.password);
+    if (passwordError) return { ok: false, error: passwordError };
 
-    // Validate role
-    if (!['admin', 'brygadzista', 'pracownik'].includes(data.role)) {
-      return { error: 'Nieprawidłowa rola użytkownika' };
-    }
+    const passwordHash = await hashPassword(data.password);
 
-    // Hash password
-    const saltRounds = 10;
-    const password_hash = await bcrypt.hash(data.password, saltRounds);
-
-    // Insert new user
-    await query(
-      'INSERT INTO users (name, role, email, password_hash, active) VALUES (?, ?, ?, ?, true)',
-      [normalizedName, data.role, normalizedEmail, password_hash]
+    // Rejestracja publiczna nigdy nie nadaje uprawnień administratora.
+    const newUser = await queryOne<User>(
+      `INSERT INTO users (name, role, email, password_hash, active)
+       VALUES (?, 'pracownik', ?, ?, true)
+       RETURNING *`,
+      [normalizedName, normalizedEmail, passwordHash]
     );
 
-    // Get the newly created user
-    const newUser = await queryOne<User>('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
-    
     if (!newUser) {
-      return { error: 'Błąd podczas tworzenia użytkownika' };
+      return { ok: false, error: 'Błąd podczas tworzenia użytkownika' };
     }
 
-    // Automatically log in the new user
-    const sessionData = {
-      userId: newUser.id,
-      email: newUser.email,
-      expiresAt: Date.now() + SESSION_DURATION
-    };
-
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION / 1000,
-      path: '/'
-    });
-
-    // Remove password_hash from returned user
-    const { password_hash: _, ...userWithoutPassword } = newUser;
-    return userWithoutPassword as User;
+    await setUserSession(newUser);
+    return { ok: true, user: withoutPassword(newUser) };
   } catch (error) {
     console.error('Registration error:', error);
-    return { error: 'Błąd podczas rejestracji' };
+    return { ok: false, error: 'Błąd podczas rejestracji' };
   }
 }

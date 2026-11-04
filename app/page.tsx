@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TreePine, List, MapPin, FolderPlus, Leaf, Plus, BarChart2, ArrowRight, ChevronRight, Shrub } from 'lucide-react';
+import { TreePine, List, MapPin, FolderPlus, Leaf, Plus, BarChart2, ArrowRight, ChevronRight, Shrub, Users } from 'lucide-react';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrator',
@@ -16,19 +16,16 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
-    fetch('/api/init')
-      .then(() => {
-        setInitialized(true);
-        return Promise.all([
-          fetch('/api/stats').then(r => r.ok ? r.json() : null),
-          fetch('/api/auth/me').then(r => r.ok ? r.json() : null),
-        ]);
-      })
+    Promise.all([
+      fetch('/api/stats').then(r => r.ok ? r.json() : null),
+      fetch('/api/auth/me').then(r => r.ok ? r.json() : null),
+    ])
       .then(([statsData, userData]) => {
         if (statsData) setStats(statsData);
         if (userData) setCurrentUser(userData);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setInitialized(true));
   }, []);
 
   if (!initialized) {
@@ -177,6 +174,9 @@ export default function Home() {
             { href: '/species',     icon: Leaf,        label: 'Gatunki',     color: 'from-lime-400 to-green-500',    hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(163,230,53,0.4)]' },
             { href: '/add-project', icon: FolderPlus,  label: 'Nowy Projekt',color: 'from-cyan-500 to-teal-600',    hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(6,182,212,0.4)]' },
             { href: '/reports',     icon: BarChart2,   label: 'Raporty',     color: 'from-violet-500 to-purple-600', hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(139,92,246,0.4)]' },
+            ...(currentUser?.role === 'admin' ? [
+              { href: '/admin/users', icon: Users, label: 'Użytkownicy', color: 'from-cyan-500 to-blue-600', hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(6,182,212,0.4)]' },
+            ] : []),
           ].map(({ href, icon: Icon, label, color, hoverBorder }, i) => (
             <Link key={href} href={href} className={`group animate-tile-in tile-${i + 3}`}>
               <div className={`glass rounded-[2rem] flex flex-col items-center text-center p-6 transition-all duration-200 hover:-translate-y-1 ${hoverBorder}`}>

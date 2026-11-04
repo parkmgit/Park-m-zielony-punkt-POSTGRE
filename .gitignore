@@ -44,6 +44,12 @@ next-env.d.ts
 *.db
 *.db-shm
 *.db-wal
+*.dump
+*.backup
+*_backup.sql
+
+# local deployment artifacts
+/deploy/
 
 # uploads
 /public/uploads/*

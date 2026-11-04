@@ -1,4 +1,5 @@
-import bcrypt from 'bcrypt';
+import { hashPassword, validatePassword } from './password';
+import type { PoolClient } from 'pg';
 
 // PostgreSQL connection pool
 let dbClient: any = null;
@@ -87,6 +88,25 @@ export async function queryOne<T = any>(sqlQuery: string, params?: any[]): Promi
   return rows.length > 0 ? rows[0] : null;
 }
 
+export async function withTransaction<T>(
+  operation: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const pool = await getDbClient();
+  const client: PoolClient = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    const result = await operation(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 // Test database connection
 export async function testConnection(): Promise<boolean> {
   try {
@@ -113,7 +133,8 @@ export async function initDB() {
         email VARCHAR(255) UNIQUE,
         password_hash VARCHAR(255),
         active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_seen_at TIMESTAMP
       )
     `);
 
@@ -187,6 +208,37 @@ export async function initDB() {
       )
     `);
 
+    // Shrubs table
+    await query(`
+      CREATE TABLE IF NOT EXISTS shrubs (
+        id SERIAL PRIMARY KEY,
+        site_id INTEGER REFERENCES sites(id),
+        species_id INTEGER REFERENCES species(id),
+        quantity INTEGER NOT NULL DEFAULT 1,
+        plant_date DATE NOT NULL,
+        worker_id INTEGER REFERENCES users(id),
+        status VARCHAR(50) DEFAULT 'posadzone',
+        notes TEXT,
+        active BOOLEAN DEFAULT true,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Shrub Actions table
+    await query(`
+      CREATE TABLE IF NOT EXISTS shrub_actions (
+        id SERIAL PRIMARY KEY,
+        shrub_id INTEGER REFERENCES shrubs(id) ON DELETE CASCADE,
+        action_type VARCHAR(100) NOT NULL,
+        quantity_affected INTEGER,
+        performed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        performer_id INTEGER REFERENCES users(id),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Photos table
     await query(`
       CREATE TABLE IF NOT EXISTS watering_reminders (
@@ -242,24 +294,34 @@ export async function initDB() {
 
 async function insertDefaultData() {
   try {
-    // Check if data already exists
     const userCount = await query<{ count: string | number }>('SELECT COUNT(*) as count FROM users');
-    
+
     if (Number(userCount[0].count) === 0) {
-      // Hash default password for all users (password123)
-      const defaultPassword = 'password123';
-      const passwordHash = await bcrypt.hash(defaultPassword, 10);
+      const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+      const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+      const initialAdminName = process.env.INITIAL_ADMIN_NAME?.trim() || 'Administrator';
+      const passwordError = validatePassword(initialAdminPassword);
 
-      // Insert default users with hashed passwords
-      await query('INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)', ['Admin Park M', 'admin', 'admin@park-m.pl', passwordHash]);
+      if (initialAdminPassword && initialAdminEmail && !passwordError) {
+        const passwordHash = await hashPassword(initialAdminPassword);
+        await query(
+          'INSERT INTO users (name, role, email, password_hash) VALUES (?, ?, ?, ?)',
+          [initialAdminName, 'admin', initialAdminEmail, passwordHash]
+        );
+        console.log('Initial administrator account created');
+      } else {
+        console.warn(
+          'Users table is empty. Set INITIAL_ADMIN_EMAIL and a valid INITIAL_ADMIN_PASSWORD before initialization.'
+        );
+      }
+    }
 
-      // Insert default species (tylko wybrane gatunki)
+    const speciesCount = await query<{ count: string | number }>('SELECT COUNT(*) as count FROM species');
+    if (Number(speciesCount[0].count) === 0) {
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Lipa srebrzysta Brabant', 'Tilia tomentosa Brabant']);
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Wiśnia piłkowana Kanzan', 'Prunus serrulata Kanzan']);
       await query('INSERT INTO species (name, scientific_name) VALUES (?, ?)', ['Grusza drobnoowocowa Chanticleer', 'Pyrus calleryana Chanticleer']);
-      
-      console.log('Default data inserted successfully');
-      console.log('Default password for all users: password123');
+      console.log('Default species inserted successfully');
     }
   } catch (error) {
     console.error('Error inserting default data:', error);

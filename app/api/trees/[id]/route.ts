@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db-config';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const tree = await queryOne(`
       SELECT 
         t.*,
@@ -20,7 +24,7 @@ export async function GET(
       LEFT JOIN users w ON t.worker_id = w.id
       LEFT JOIN users c ON t.created_by = c.id
       WHERE t.id = ?
-    `, [params.id]);
+    `, [id]);
 
     if (!tree) {
       return NextResponse.json(
@@ -37,7 +41,9 @@ export async function GET(
       accuracy: tree.accuracy ? parseFloat(tree.accuracy) : null
     };
 
-    return NextResponse.json(treeWithNumbers);
+    return NextResponse.json(treeWithNumbers, {
+      headers: { 'Cache-Control': 'no-store' }
+    });
   } catch (error) {
     console.error('Error fetching tree:', error);
     return NextResponse.json(
@@ -50,12 +56,13 @@ export async function GET(
 // UPDATE tree
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     
-    console.log('Updating tree:', params.id, body);
+    console.log('Updating tree:', id, body);
 
     await query(
       `UPDATE trees SET 
@@ -82,7 +89,7 @@ export async function PUT(
         body.longitude,
         body.accuracy || null,
         body.notes || null,
-        params.id
+        id
       ]
     );
 
@@ -102,16 +109,17 @@ export async function PUT(
 // PATCH - update only location
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     if (body.latitude === undefined || body.longitude === undefined) {
       return NextResponse.json({ error: 'latitude and longitude required' }, { status: 400 });
     }
     await query(
       `UPDATE trees SET latitude = $1, longitude = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-      [body.latitude, body.longitude, params.id]
+      [body.latitude, body.longitude, id]
     );
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -122,13 +130,14 @@ export async function PATCH(
 // DELETE tree
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('Deleting tree:', params.id);
+    const { id } = await params;
+    console.log('Deleting tree:', id);
 
     // Check if tree exists
-    const tree = await queryOne('SELECT id FROM trees WHERE id = ?', [params.id]);
+    const tree = await queryOne('SELECT id FROM trees WHERE id = ?', [id]);
     
     if (!tree) {
       return NextResponse.json(
@@ -138,7 +147,7 @@ export async function DELETE(
     }
 
     // Delete tree (cascade will delete related actions and photos)
-    await query('DELETE FROM trees WHERE id = ?', [params.id]);
+    await query('DELETE FROM trees WHERE id = ?', [id]);
 
     return NextResponse.json({ 
       success: true,
