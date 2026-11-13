@@ -130,21 +130,29 @@ export default function EditSpeciesPage() {
 
   return (
     //  Powrót do strony głównej
-
-    <div className="rounded-3xl border-[3px] border-gray-200 bg-white p-8 shadow-lg dark:border-[#22c55e] dark:bg-slate-800/80 dark:shadow-[0_0_30px_rgba(34,197,94,0.3)] dark:backdrop-blur">
-      <div className="mb-6 flex items-center gap-3">
-        <Leaf className="h-8 w-8 text-green-600 dark:text-[#22c55e]" />
-
-        <div>
+       
+        
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-8">
+    <div className="container mx-auto px-4 max-w-2xl">
+      <Link
+          href="/species"
+          className="inline-flex items-center gap-2 text-gray-600 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Powrót do strony głównej
+        </Link>
+        
+          <div className="glass rounded-3xl p-8 gradient-border-green">
+          <div className="flex items-center gap-3 mb-6">
+            <Leaf className="w-8 h-8 text-green-600 dark:text-[#22c55e]" />
           <h1 className="text-3xl font-bold text-gray-800 dark:text-[#22c55e]">
             Edytuj Gatunek Drzewa
           </h1>
-
+        </div>
           <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
             Identyfikator gatunku: {speciesId}
           </p>
-        </div>
-      </div>
+        
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {errorMessage && (
@@ -215,11 +223,12 @@ export default function EditSpeciesPage() {
             Opcjonalne: nazwa naukowa gatunku
           </p>
         </div>
-
+        
+        <div className="flex items-center justify-between gap-4 pt-2">
         <button
           type="submit"
           disabled={isSaving}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-green-600 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#22c55e] dark:hover:bg-green-500"
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-base py-4"
         >
           {isSaving ? (
             <>
@@ -233,7 +242,19 @@ export default function EditSpeciesPage() {
             </>
           )}
         </button>
+
+          <Link
+            href="/species"
+            className="btn-cancel"
+            >
+            Anuluj
+          </Link>
+          </div>
+
       </form>
+      </div>
+      </div>
+      
     </div>
   );
 }

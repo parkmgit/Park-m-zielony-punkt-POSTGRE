@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, queryOne } from '@/lib/db-config';
+import { query, withTransaction } from '@/lib/db-config';
 import { CreateTreeDTO } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -106,37 +106,43 @@ export async function POST(request: NextRequest) {
       created_by: createdBy
     });
 
-    await query(
-      `INSERT INTO trees (
-        tree_number, species_id, site_id, worker_id, plant_date, status,
-        latitude, longitude, accuracy, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        body.tree_number || null,
-        body.species_id ? parseInt(body.species_id as any) : null,
-        parseInt(body.site_id as any),
-        body.worker_id ? parseInt(body.worker_id as any) : null,
-        body.plant_date,
-        body.status,
-        body.latitude,
-        body.longitude,
-        body.accuracy || null,
-        body.notes || null,
-        createdBy
-      ]
-    );
+    // Both inserts share one database transaction and the exact returned tree ID.
+    const treeId = await withTransaction(async (client) => {
+      const inserted = await client.query<{ id: number }>(
+        `INSERT INTO trees (
+          tree_number, species_id, site_id, worker_id, plant_date, status,
+          latitude, longitude, accuracy, notes, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING id`,
+        [
+          body.tree_number || null,
+          body.species_id ? parseInt(body.species_id as any) : null,
+          parseInt(body.site_id as any),
+          body.worker_id ? parseInt(body.worker_id as any) : null,
+          body.plant_date,
+          body.status,
+          body.latitude,
+          body.longitude,
+          body.accuracy || null,
+          body.notes || null,
+          createdBy
+        ]
+      );
 
-    // Get the last inserted tree
-    const lastTree = await query<any>('SELECT id FROM trees ORDER BY id DESC LIMIT 1');
-    const treeId = lastTree[0]?.id;
+      const id = inserted.rows[0]?.id;
+      if (id == null) {
+        throw new Error('Database did not return the inserted tree ID');
+      }
+
+      await client.query(
+        'INSERT INTO tree_actions (tree_id, action_type, notes, performed_by) VALUES ($1, $2, $3, $4)',
+        [id, 'posadzenie', body.notes || 'Drzewo posadzone', createdBy]
+      );
+
+      return id;
+    });
+
     console.log('Tree inserted with ID:', treeId);
-
-    // Also create initial action
-    await query(
-      'INSERT INTO tree_actions (tree_id, action_type, notes, performed_by) VALUES (?, ?, ?, ?)',
-      [treeId, 'posadzenie', body.notes || 'Drzewo posadzone', createdBy]
-    );
-
     console.log('Tree action created successfully');
     console.log('=== SUCCESS ===\n');
 

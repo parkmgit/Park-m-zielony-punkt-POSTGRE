@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TreePine, List, MapPin, FolderPlus, Leaf, Plus, BarChart2, ArrowRight, ChevronRight, Shrub, Users } from 'lucide-react';
+import { TreePine, List, MapPin, FolderPlus, Leaf, Plus, BarChart2, ArrowRight, ChevronRight, Shrub, Users, ChartColumn } from 'lucide-react';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrator',
@@ -89,7 +89,7 @@ export default function Home() {
         </div>
 
         {/* ── FEATURED: Dodaj Drzewo ── */}
-        <Link href="/add-tree" className="group block mb-4 animate-fade-in-up" style={{animationDelay:'0.07s'}}>
+        <Link href="/add-tree?returnTo=%2F" className="group block mb-4 animate-fade-in-up" style={{animationDelay:'0.07s'}}>
           <div className="relative overflow-hidden rounded-[2.5rem] glass-green gradient-border-green p-7 sm:p-10 transition-all duration-300 group-hover:scale-[1.005]">
             {/* Decorative orbs */}
             <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-green-400/10 blur-3xl" />
@@ -174,6 +174,7 @@ export default function Home() {
             { href: '/species',     icon: Leaf,        label: 'Gatunki',     color: 'from-lime-400 to-green-500',    hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(163,230,53,0.4)]' },
             { href: '/add-project', icon: FolderPlus,  label: 'Nowy Projekt',color: 'from-cyan-500 to-teal-600',    hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(6,182,212,0.4)]' },
             { href: '/reports',     icon: BarChart2,   label: 'Raporty',     color: 'from-violet-500 to-purple-600', hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(139,92,246,0.4)]' },
+            { href: '/statistics',     icon: ChartColumn,   label: 'Statystyki',     color: 'from-green-500 to-yellow-600', hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(139,92,246,0.4)]' },
             ...(currentUser?.role === 'admin' ? [
               { href: '/admin/users', icon: Users, label: 'Użytkownicy', color: 'from-cyan-500 to-blue-600', hoverBorder: 'group-hover:shadow-[0_0_0_1px_rgba(6,182,212,0.4)]' },
             ] : []),

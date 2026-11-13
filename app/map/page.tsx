@@ -175,7 +175,7 @@ export default function MapPage() {
               {mapLayer === 'satellite' ? <Map className="w-3.5 h-3.5" strokeWidth={2} /> : <Satellite className="w-3.5 h-3.5" strokeWidth={2} />}
               {mapLayer === 'satellite' ? 'Mapa' : 'Satelita'}
             </button>
-            <Link href="/add-tree"
+            <Link href="/add-tree?returnTo=%2Fmap"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-2xl transition-all hover:scale-105 flex-shrink-0"
               style={{background:'linear-gradient(135deg,#16a34a,#22c55e)',boxShadow:'0 2px 12px rgba(34,197,94,0.4)'}}
             >

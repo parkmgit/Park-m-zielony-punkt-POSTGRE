@@ -131,7 +131,7 @@ export default function AddProjectPage() {
                 className="input-modern"
               />
             </div>
-
+            <div className="flex items-center justify-between gap-4 pt-2">
             {/* Submit Button */}
             <button
               type="submit"
@@ -140,6 +140,16 @@ export default function AddProjectPage() {
             >
               {loading ? 'Dodawanie...' : '✓ Dodaj Projekt'}
             </button>
+
+            <Link
+            //Przycisk ANULUJ
+            href="/" //tymczasowo, zmienic na url
+            className="btn-cancel"
+              >
+            Anuluj
+            </Link>
+            </div>
+          
           </form>
         </div>
       </div>

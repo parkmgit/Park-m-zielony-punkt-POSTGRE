@@ -202,7 +202,7 @@ export default function ProjectsPage() {
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={handleSaveEdit} className="btn-primary flex-1">Zapisz</button>
-              <button onClick={()=>setEditingProject(null)} className="flex-1 glass rounded-2xl py-3 text-sm font-semibold text-white/60 hover:text-white transition-colors">Anuluj</button>
+              <button onClick={()=>setEditingProject(null)} className="btn-cancel">Anuluj</button>
             </div>
           </div>
         </div>

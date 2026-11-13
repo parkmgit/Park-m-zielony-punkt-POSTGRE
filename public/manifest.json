@@ -1,6 +1,6 @@
 {
   "name": "Park M - System Ewidencji Drzew",
-  "short_name": "Park M",
+  "short_name": "Trees Park M",
   "description": "Aplikacja do zarządzania i monitorowania drzew z GPS i zdjęciami",
   "start_url": "/",
   "display": "standalone",

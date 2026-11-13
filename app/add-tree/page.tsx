@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MapPin, Camera, Loader2, ArrowLeft, Check, TreePine } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -16,8 +16,26 @@ interface Lookups {
   statuses: string[];
 }
 
-export default function AddTreePage() {
+function AddTreeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const returnUrl = (() => {
+    const requestedReturnTo = searchParams.get('returnTo');
+    if (!requestedReturnTo) return '/';
+
+    // Accept only local, explicitly supported destinations (and their query strings).
+    // Reject protocol-relative URLs, backslashes and path lookalikes such as /trees-other.
+    if (!requestedReturnTo.startsWith('/') || requestedReturnTo.startsWith('//') ||
+        requestedReturnTo.includes('\\')) return '/';
+
+    const path = requestedReturnTo.split(/[?#]/, 1)[0];
+    if (path === '/' || path === '/map' || path === '/trees') {
+      return requestedReturnTo;
+    }
+    return '/';
+  })();
+
   const [lookups, setLookups] = useState<Lookups | null>(null);
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -38,6 +56,8 @@ export default function AddTreePage() {
     notes: ''
   });
 
+
+  
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string[]>([]);
 
@@ -231,7 +251,7 @@ export default function AddTreePage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/trees');
+        router.push(returnUrl);
       }, 2000);
     } catch (error) {
       console.error('Error:', error);
@@ -277,7 +297,7 @@ export default function AddTreePage() {
   return (
     <div className="min-h-screen py-8 pb-28 md:pb-8">
       <div className="container mx-auto px-4 max-w-2xl">
-        <Link href="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-6 transition-colors">
+        <Link href={returnUrl} className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Powrót
         </Link>
 
@@ -495,23 +515,40 @@ export default function AddTreePage() {
               />
             </div>
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 dark:bg-green-700 text-white py-3 rounded-full font-semibold hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Zapisywanie...
-                </>
-              ) : (
-                'Zapisz Drzewo'
-              )}
-            </button>
+<div className="flex items-center justify-between gap-4 pt-2">
+  <button
+    type="submit"
+    disabled={loading}
+    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-base py-4"
+  >
+    {loading ? (
+      <>
+        <Loader2 className="w-5 h-5 animate-spin" />
+        Zapisywanie...
+      </>
+    ) : (
+      'Zapisz Drzewo'
+    )}
+  </button>
+
+  <Link
+    href={returnUrl}
+    className="btn-cancel"
+  >
+    Anuluj
+  </Link>
+</div>
           </form>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AddTreePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-white">Ładowanie formularza...</div>}>
+      <AddTreeContent />
+    </Suspense>
   );
 }

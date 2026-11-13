@@ -44,14 +44,14 @@ export default function AddSpeciesPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-8">
       <div className="container mx-auto px-4 max-w-2xl">
         <Link
-          href="/"
+          href="/species"
           className="inline-flex items-center gap-2 text-gray-600 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Powrót do strony głównej
         </Link>
-
-        <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur rounded-3xl shadow-lg dark:shadow-[0_0_30px_rgba(34,197,94,0.3)] p-8 border-[3px] border-gray-200 dark:border-[#22c55e]">
+          
+          <div className="glass rounded-3xl p-8 gradient-border-green">
           <div className="flex items-center gap-3 mb-6">
             <Leaf className="w-8 h-8 text-green-600 dark:text-[#22c55e]" />
             <h1 className="text-3xl font-bold text-gray-800 dark:text-[#22c55e]">
@@ -93,13 +93,24 @@ export default function AddSpeciesPage() {
             </div>
 
             {/* Submit Button */}
+            <div className="flex items-center justify-between gap-4 pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 dark:bg-[#22c55e] text-white py-4 rounded-lg hover:bg-green-700 dark:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-base py-4"
             >
               {loading ? 'Dodawanie...' : '✓ Dodaj Gatunek'}
+
             </button>
+                <Link
+                  href="/species"
+                  className="btn-cancel"
+                  >
+                  Anuluj
+                </Link>
+              </div>
+
+            
           </form>
         </div>
       </div>

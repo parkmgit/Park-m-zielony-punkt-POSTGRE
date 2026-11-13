@@ -156,15 +156,25 @@ export default function AddShrubPage() {
                 placeholder="Dodatkowe informacje..."
               />
             </div>
-
+            <div className="flex items-center justify-between gap-4 pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl font-black text-white text-sm tracking-wide disabled:opacity-50 transition-all hover:scale-[1.01]"
-              style={{ background: 'linear-gradient(135deg,#16a34a,#22c55e)', boxShadow: '0 4px 20px rgba(34,197,94,0.35)' }}
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-base py-4"
+              
             >
               {loading ? 'Zapisywanie...' : '✓ Dodaj Nasadzenie'}
             </button>
+
+                
+            <Link
+            //Przycisk ANULUJ
+            href="/shrubs" //tymczasowo, zmienic na url
+            className="btn-cancel"
+              >
+            Anuluj
+            </Link>
+            </div>
           </form>
         </div>
       </div>
